@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiveM クラフト計算機</title>
+    <style>
+        /* デフォルトテーマ（ライトモード） */
+        :root {
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #cccccc;
+            --primary-color: #007BFF;
+            --danger-color: #dc3545;
+            --result-bg: #e9ecef;
+            --base-font-size: 16px;
+        }
+
+        /* ダークテーマ用 */
+        .theme-dark {
+            --bg-color: #1e1e24;
+            --card-bg: #2a2a35;
+            --text-color: #ffffff;
+            --border-color: #444455;
+            --primary-color: #ff9f43;
+            --danger-color: #ff5252;
+            --result-bg: #353545;
+        }
+
+        body { 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            margin: 20px; 
+            background: var(--bg-color); 
+            color: var(--text-color);
+            font-size: var(--base-font-size);
+            transition: all 0.2s ease;
+        }
+        
+        /* コントロールパネル */
+        .top-panel {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid var(--border-color);
+        }
+        .panel-group { display: flex; gap: 10px; align-items: center; }
+
+        select, input, button, textarea { 
+            padding: 8px 12px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 4px; 
+            font-size: 0.95rem; 
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+        button { cursor: pointer; font-weight: bold; }
+        .btn-primary { background: var(--primary-color); color: #fff; border: none; }
+        .btn-secondary { background: #6c757d; color: #fff; border: none; }
+        .btn-danger { background: var(--danger-color); color: #fff; border: none; }
+
+        /* メインワークスペース */
+        .app-workspace { display: flex; gap: 20px; justify-content: center; align-items: flex-start; width: 100%; }
+        .app-workspace.vertical { flex-direction: column; align-items: center; }
+
+        .container { 
+            flex: 1; max-width: 500px; width: 100%; 
+            background: var(--card-bg); padding: 20px; border-radius: 8px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box;
+            border: 1px solid var(--border-color);
+        }
+        
+        h1 { font-size: 1.25rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .w-full { width: 100%; box-sizing: border-box; }
+        
+        .flex-group { display: flex; gap: 8px; }
+        
+        .result { margin-top: 20px; padding: 15px; background: var(--result-bg); border-radius: 4px; }
+        .result-section { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed var(--border-color); }
+        .result-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .result-title { font-weight: bold; margin-bottom: 5px; color: var(--primary-color); }
+        
+        /* 総合計エリア */
+        .total-summary {
+            margin-top: 15px; padding: 12px; background: rgba(0,123,255,0.1); 
+            border-left: 4px solid var(--primary-color); border-radius: 4px;
+        }
+        .total-summary h4 { margin: 0 0 8px 0; color: var(--text-color); }
+
+        /* データ編集モード用の簡易フォーム */
+        .edit-panel {
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none;
+        }
+        .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .mode-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .mode-btn { flex: 1; padding: 10px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); }
+        .mode-btn.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .hint-box { background: rgba(0,0,0,0.03); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; opacity: 0.85; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+<!-- 🛠️ 上部コントロールパネル -->
+<div class="top-panel">
+    <div class="panel-group">
+        <label>🎨 見た目:</label>
+        <select id="ui-theme">
+            <option value="default">ライトモード</option>
+            <option value="dark">ダークモード</option>
+        </select>
+        
+        <label>🔤 文字サイズ:</label>
+        <select id="ui-size">
+            <option value="14px">小</option>
+            <option value="16px" selected>中</option>
+            <option value="18px">大</option>
+            <option value="22px">特大</option>
+        </select>
+    </div>
+    
+    <div class="panel-group">
+        <button class="btn-secondary" id="btn-layout">↔️/↕️ レイアウト切替</button>
+        <button class="btn-secondary" style="background:#28a745;" id="btn-toggle-edit">📝 レシピを編集・追加する</button>
+    </div>
+</div>
+
+<!-- 📝 レシピ編集・追加用の隠しパネル -->
+<div id="edit-panel" class="edit-panel">
+    <h3 style="margin-top:0;">📝 レシピデータの管理</h3>
+    
+    <!-- モード選択タブ -->
+    <div class="mode-selector">
+        <button type="button" class="mode-btn active" id="tab-add-mode">➕ 新しい項目を追加</button>
+        <button type="button" class="mode-btn" id="tab-edit-mode">✏️ 既存の項目を編集・削除</button>
+    </div>
+
+    <div class="edit-grid">
+        <div class="form-group">
+            <label>1. クラフト台を選択</label>
+            <select id="edit-category" class="w-full">
+                <option value="weapon">[9023]武器クラフト【武器・防具】</option>
+                <option value="craft">[3057]手芸クラフト【犯罪道具】</option>
+            </select>
+        </div>
+        
+        <!-- 新規追加用入力欄 -->
+        <div class="form-group" id="field-new-name">
+            <label>2. メインの名前 (例: APピストル)</label>
+            <input type="text" id="edit-main-name-input" class="w-full" placeholder="名前を入力してください">
+        </div>
+
+        <!-- 既存編集用選択ドロップダウン -->
+        <div class="form-group" id="field-select-name" style="display:none;">
+            <label>2. 編集・削除する項目を選択</label>
+            <div class="flex-group">
+                <select id="edit-main-name-select" class="w-full"></select>
+                <button type="button" class="btn-danger" id="btn-delete-recipe" style="white-space: nowrap;">🗑️ 削除</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>3. 必要な素材レシピ</label>
+        <div class="hint-box">
+            💡 <strong>書き方例：</strong> 1行に <code>素材名, 必要数</code> の形式で書いてください。<br>
+            ※パーツ分けしたい場合は <code># パーツ名</code> で区切ることもできます。
+        </div>
+        <textarea id="edit-easy-recipe" class="w-full" rows="6" placeholder="高品質な鉄, 10
+スプリング, 3
+ガンパウダー, 2"></textarea>
+    </div>
+
+    <button class="btn-primary" id="btn-save-recipe">このレシピを保存・更新する</button>
+    <button class="btn-secondary" style="background:#dc3545; float:right;" id="btn-reset-data">初期データに戻す</button>
+</div>
+
+<!-- 🧮 メイン計算機ワークスペース -->
+<div class="app-workspace" id="workspace">
+
+    <!-- ==================== 1. 武器クラフト ==================== -->
+    <div class="container">
+        <h1>⚔️ 武器クラフト【武器・防具】</h1>
+        <div class="form-group">
+            <label for="weapon-item-select">作成する武器・防具</label>
+            <select id="weapon-item-select" class="w-full"></select>
+        </div>
+        <div class="form-group">
+            <label for="weapon-item-quantity">作成する個数</label>
+            <input type="number" id="weapon-item-quantity" class="w-full" min="1" value="1">
+        </div>
+        <div class="result" id="weapon-result-area"></div>
+    </div>
+
+    <!-- ==================== 2. 手芸クラフト ==================== -->
+    <div class="container">
+        <h1>🧵 手芸クラフト【犯罪道具】</h1>
+        <div class="form-group">
+            <label for="craft-item-select">ターゲットの犯罪</label>
+            <select id="craft-item-select" class="w-full"></select>
+        </div>
+        <div class="form-group">
+            <label for="craft-item-quantity">実行する回数（セット数）</label>
+            <input type="number" id="craft-item-quantity" class="w-full" min="1" value="1">
+        </div>
+        <div class="result" id="craft-result-area"></div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // --- 初期デフォルトデータ ---
+    const defaultWeapon = {
+        "pistol": { name: "ヘビーピストル", subItems: [{ name: "本体", materials: [{ name: "高品質な鉄", qty: 10 }, { name: "スプリング", qty: 3 }] }, { name: "サプレッサー", materials: [{ name: "高品質な鉄", qty: 4 }] }, { name: "9mm弾", materials: [{ name: "ガンパウダー", qty: 2 }] }] },
+        "body_armor": { name: "防弾チョッキ", subItems: [{ name: "本体", materials: [{ name: "ケブラー繊維", qty: 10 }, { name: "鉄くず", qty: 5 }] }] }
+    };
+    const defaultCraft = {
+        "bank_robbery": { name: "パシフィック銀行強盗", subItems: [{ name: "ハッキングPC", materials: [{ name: "精密部品", qty: 10 }, { name: "電子部品", qty: 15 }] }, { name: "サーマイト爆薬", materials: [{ name: "マグネシウム", qty: 5 }] }] }
+    };
+
+    // データの読み込み
+    let weaponRecipes = JSON.parse(localStorage.getItem('f5m_weapon')) || defaultWeapon;
+    let craftRecipes = JSON.parse(localStorage.getItem('f5m_craft')) || defaultCraft;
+    let currentMode = 'add'; // 'add' または 'edit'
+
+    // --- テキスト ⇔ データ 変換関数 ---
+    function subItemsToText(subItems) {
+        if (!subItems || !subItems.length) return '';
+        let lines = [];
+        subItems.forEach(item => {
+            if (item.name && item.name !== '本体') {
+                lines.push(`# ${item.name}`);
+            }
+            item.materials.forEach(mat => {
+                lines.push(`${mat.name}, ${mat.qty}`);
+            });
+        });
+        return lines.join('\n').trim();
+    }
+
+    function textToSubItems(text) {
+        let subItems = [];
+        let currentItem = null;
+
+        const lines = text.split('\n');
+        for (let line of lines) {
+            line = line.trim();
+            if (!line) continue;
+
+            if (line.startsWith('#')) {
+                const itemName = line.replace(/^#\s*/, '').trim();
+                currentItem = { name: itemName || '本体', materials: [] };
+                subItems.push(currentItem);
+            } else {
+                if (!currentItem) {
+                    currentItem = { name: '本体', materials: [] };
+                    subItems.push(currentItem);
+                }
+                const parts = line.split(/[,，]/);
+                if (parts.length >= 2) {
+                    const matName = parts[0].trim();
+                    const matQty = parseInt(parts[1].trim()) || 1;
+                    if (matName) {
+                        currentItem.materials.push({ name: matName, qty: matQty });
+                    }
+                }
+            }
+        }
+        return subItems;
+    }
+
+    // --- UIセレクトボックス＆フォーム状態更新 ---
+    function updateSelectBoxes() {
+        setupSelect('weapon-item-select', weaponRecipes);
+        setupSelect('craft-item-select', craftRecipes);
+        updateEditFormUI();
+    }
+    
+    function setupSelect(id, data) {
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.innerHTML = '';
+        for (const key in data) {
+            const opt = document.createElement('option');
+            opt.value = key; opt.textContent = data[key].name;
+            el.appendChild(opt);
+        }
+    }
+
+    // 編集パネルのモード切り替えと表示制御
+    function switchMode(mode) {
+        currentMode = mode;
+        const addBtn = document.getElementById('tab-add-mode');
+        const editBtn = document.getElementById('tab-edit-mode');
+        const fieldNew = document.getElementById('field-new-name');
+        const fieldSelect = document.getElementById('field-select-name');
+
+        if (mode === 'add') {
+            addBtn.classList.add('active');
+            editBtn.classList.remove('active');
+            fieldNew.style.display = 'block';
+            fieldSelect.style.display = 'none';
+            document.getElementById('edit-main-name-input').value = '';
+            document.getElementById('edit-easy-recipe').value = '';
+        } else {
+            editBtn.classList.add('active');
+            addBtn.classList.remove('active');
+            fieldNew.style.display = 'none';
+            fieldSelect.style.display = 'block';
+            updateEditNameSelect();
+        }
+    }
+
+    function updateEditFormUI() {
+        if (currentMode === 'edit') {
+            updateEditNameSelect();
+        }
+    }
+
+    function updateEditNameSelect() {
+        const cat = document.getElementById('edit-category').value;
+        const targetRecipes = (cat === 'weapon') ? weaponRecipes : craftRecipes;
+        const nameSelect = document.getElementById('edit-main-name-select');
+
+        if (!nameSelect) return;
+        nameSelect.innerHTML = '';
+
+        for (const key in targetRecipes) {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = targetRecipes[key].name;
+            nameSelect.appendChild(opt);
+        }
+
+        fillRecipeFormFromSelection();
+    }
+
+    function fillRecipeFormFromSelection() {
+        const cat = document.getElementById('edit-category').value;
+        const key = document.getElementById('edit-main-name-select').value;
+        const targetRecipes = (cat === 'weapon') ? weaponRecipes : craftRecipes;
+        const easyArea = document.getElementById('edit-easy-recipe');
+
+        if (key && targetRecipes[key]) {
+            easyArea.value = subItemsToText(targetRecipes[key].subItems);
+        } else {
+            easyArea.value = '';
+        }
+    }
+
+    // --- 計算ロジック ---
+    function calculateMaterials(type) {
+        const selectEl = document.getElementById(`${type}-item-select`);
+        if (!selectEl) return;
+        const key = selectEl.value;
+        const qty = parseInt(document.getElementById(`${type}-item-quantity`).value) || 0;
+        const resultArea = document.getElementById(`${type}-result-area`);
+        
+        if (!resultArea) return;
+        
+        if (!key || qty <= 0) { 
+            resultArea.style.display = 'none';
+            return; 
+        }
+        
+        const targetData = (type === 'weapon') ? weaponRecipes[key] : craftRecipes[key];
+        if (!targetData) {
+            resultArea.style.display = 'none';
+            return;
+        }
+
+        let html = '';
+        let totalSummary = {};
+
+        targetData.subItems.forEach(item => {
+            html += `<div class="result-section">
+                        <div class="result-title">🔹 ${item.name} × ${qty}分</div>
+                        <ul>`;
+            item.materials.forEach(mat => {
+                const finalQty = mat.qty * qty;
+                html += `<li><strong>${mat.name}</strong>: ${finalQty} 個 (1個あたり: ${mat.qty})</li>`;
+                totalSummary[mat.name] = (totalSummary[mat.name] || 0) + finalQty;
+            });
+            html += `</ul></div>`;
+        });
+
+        html += `<div class="total-summary"><h4>📦 必要な全素材の合計数</h4><ul>`;
+        for (const matName in totalSummary) {
+            html += `<li><strong>${matName}</strong>: <span style="font-size:1.15em; color:var(--primary-color);">${totalSummary[matName]}</span> 個</li>`;
+        }
+        html += `</ul></div>`;
+
+        resultArea.innerHTML = html;
+        resultArea.style.display = 'block';
+    }
+
+    function refreshAllCalculations() {
+        calculateMaterials('weapon');
+        calculateMaterials('craft');
+    }
+
+    // --- イベントリスナー ---
+    document.getElementById('tab-add-mode').addEventListener('click', () => switchMode('add'));
+    document.getElementById('tab-edit-mode').addEventListener('click', () => switchMode('edit'));
+
+    document.getElementById('weapon-item-select').addEventListener('change', () => calculateMaterials('weapon'));
+    document.getElementById('weapon-item-quantity').addEventListener('input', () => calculateMaterials('weapon'));
+    document.getElementById('craft-item-select').addEventListener('change', () => calculateMaterials('craft'));
+    document.getElementById('craft-item-quantity').addEventListener('input', () => calculateMaterials('craft'));
+
+    document.getElementById('edit-category').addEventListener('change', updateEditFormUI);
+    document.getElementById('edit-main-name-select').addEventListener('change', fillRecipeFormFromSelection);
+
+    document.getElementById('ui-theme').addEventListener('change', (e) => {
+        document.body.className = (e.target.value === 'dark') ? 'theme-dark' : '';
+    });
+    document.getElementById('ui-size').addEventListener('change', (e) => {
+        document.documentElement.style.setProperty('--base-font-size', e.target.value);
+    });
+
+    document.getElementById('btn-layout').addEventListener('click', () => {
+        document.getElementById('workspace').classList.toggle('vertical');
+    });
+
+    document.getElementById('btn-toggle-edit').addEventListener('click', () => {
+        const panel = document.getElementById('edit-panel');
+        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+    });
+
+    // 削除処理
+    document.getElementById('btn-delete-recipe').addEventListener('click', () => {
+        const cat = document.getElementById('edit-category').value;
+        const selectedKey = document.getElementById('edit-main-name-select').value;
+        const targetRecipes = (cat === 'weapon') ? weaponRecipes : craftRecipes;
+
+        if (selectedKey && targetRecipes[selectedKey]) {
+            const itemName = targetRecipes[selectedKey].name;
+            if (confirm(`「${itemName}」を削除しますか？`)) {
+                delete targetRecipes[selectedKey];
+                if (cat === 'weapon') {
+                    localStorage.setItem('f5m_weapon', JSON.stringify(weaponRecipes));
+                } else {
+                    localStorage.setItem('f5m_craft', JSON.stringify(craftRecipes));
+                }
+                updateSelectBoxes();
+                refreshAllCalculations();
+                alert(`「${itemName}」を削除しました。`);
+            }
+        }
+    });
+
+    // 保存処理
+    document.getElementById('btn-save-recipe').addEventListener('click', () => {
+        const cat = document.getElementById('edit-category').value;
+        const recipeText = document.getElementById('edit-easy-recipe').value.trim();
+
+        if (!recipeText) {
+            alert('素材レシピを入力してください。');
+            return;
+        }
+
+        let mainName = '';
+        let targetKey = '';
+
+        if (currentMode === 'add') {
+            mainName = document.getElementById('edit-main-name-input').value.trim();
+            if (!mainName) {
+                alert('メインの名前を入力してください。');
+                return;
+            }
+            targetKey = 'custom_' + Date.now();
+        } else {
+            targetKey = document.getElementById('edit-main-name-select').value;
+            const targetRecipes = (cat === 'weapon') ? weaponRecipes : craftRecipes;
+            if (!targetKey || !targetRecipes[targetKey]) return;
+            mainName = targetRecipes[targetKey].name;
+        }
+
+        const parsedSubItems = textToSubItems(recipeText);
+
+        if (parsedSubItems.length === 0) {
+            alert('素材データが見つかりませんでした。「素材名, 個数」の形式で入力してください。');
+            return;
+        }
+
+        if (cat === 'weapon') {
+            weaponRecipes[targetKey] = { name: mainName, subItems: parsedSubItems };
+            localStorage.setItem('f5m_weapon', JSON.stringify(weaponRecipes));
+        } else {
+            craftRecipes[targetKey] = { name: mainName, subItems: parsedSubItems };
+            localStorage.setItem('f5m_craft', JSON.stringify(craftRecipes));
+        }
+
+        updateSelectBoxes();
+        refreshAllCalculations();
+        
+        if (currentMode === 'add') {
+            document.getElementById('edit-main-name-input').value = '';
+            document.getElementById('edit-easy-recipe').value = '';
+        }
+        
+        alert(`「${mainName}」のレシピを保存しました！`);
+    });
+
+    // リセット処理
+    document.getElementById('btn-reset-data').addEventListener('click', () => {
+        if (confirm('初期状態に戻しますか？（保存したデータは削除されます）')) {
+            localStorage.removeItem('f5m_weapon');
+            localStorage.removeItem('f5m_craft');
+            weaponRecipes = defaultWeapon;
+            craftRecipes = defaultCraft;
+            updateSelectBoxes();
+            refreshAllCalculations();
+            alert('初期データに戻しました。');
+        }
+    });
+
+    // 初期実行
+    updateSelectBoxes();
+    refreshAllCalculations();
+});
+</script>
+</body>
+</html>
