@@ -76,9 +76,7 @@
       padding-bottom: 8px;
     }
 
-    .form-group {
-      margin-bottom: 16px;
-    }
+    .form-group { margin-bottom: 16px; }
 
     label {
       display: block;
@@ -147,10 +145,7 @@
       color: #cbd5e0;
     }
 
-    .labor-tag {
-      color: var(--accent-blue);
-      font-weight: bold;
-    }
+    .labor-tag { color: var(--accent-blue); font-weight: bold; }
 
     .total-box {
       background-color: var(--bg-color);
@@ -165,13 +160,9 @@
       color: var(--accent-orange);
     }
 
-    .total-box ul {
-      margin: 0;
-      padding-left: 20px;
-      font-size: 14px;
-    }
+    .total-box ul { margin: 0; padding-left: 20px; font-size: 14px; }
 
-    /* 簡易編集モーダル */
+    /* モーダル */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -188,13 +179,13 @@
       padding: 20px;
       border-radius: 8px;
       width: 90%;
-      max-width: 500px;
+      max-width: 550px;
       max-height: 85vh;
       overflow-y: auto;
       border: 1px solid var(--border-color);
     }
 
-    .edit-part-card {
+    .edit-section {
       background: var(--sub-card-bg);
       padding: 12px;
       border-radius: 6px;
@@ -213,11 +204,21 @@
       gap: 10px;
       margin-top: 15px;
     }
+
+    .attach-select-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      background: var(--bg-color);
+      padding: 8px;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
 
-  <!-- ツールバー -->
   <div class="toolbar">
     <button id="edit-recipe-btn" class="btn btn-green">📝 レシピを編集・追加する</button>
     <button id="export-btn" class="btn btn-gray">💾 データを書き出す</button>
@@ -225,20 +226,16 @@
     <button id="import-btn" class="btn btn-gray">📂 データを読み込む</button>
   </div>
 
-  <!-- メイン領域 -->
   <div class="calculator-grid">
 
     <!-- 1. 武器クラフト -->
     <div class="card">
       <h2>[9023]武器クラフト【武器・防具】</h2>
-      
       <div class="form-group">
         <label for="weapon-select">作成する武器・防具</label>
         <select id="weapon-select"></select>
       </div>
-
       <div class="parts-container" id="weapon-parts"></div>
-
       <div class="total-box">
         <h3>📦 必要な全素材の合計数</h3>
         <ul id="weapon-totals"></ul>
@@ -248,14 +245,11 @@
     <!-- 2. 手芸クラフト -->
     <div class="card">
       <h2>[3057]手芸クラフト【犯罪道具】</h2>
-
       <div class="form-group">
         <label for="crime-select">ターゲットの犯罪</label>
         <select id="crime-select"></select>
       </div>
-
       <div class="parts-container" id="crime-parts"></div>
-
       <div class="total-box">
         <h3>📦 必要な全素材の合計数</h3>
         <ul id="crime-totals"></ul>
@@ -264,29 +258,75 @@
 
   </div>
 
-  <!-- 簡易レシピ編集モーダル -->
+  <!-- レシピ編集モーダル -->
   <div class="modal-overlay" id="edit-modal">
     <div class="modal-content">
-      <h2>📝 選択中レシピの簡易編集</h2>
+      <h2>📝 レシピ・アタッチメントの編集</h2>
       
       <div class="form-group">
-        <label>編集するカテゴリ</label>
-        <select id="edit-category-select">
-          <option value="weapon">武器クラフト</option>
-          <option value="crime">手芸クラフト</option>
+        <label>編集モードを選択</label>
+        <select id="edit-mode-select">
+          <option value="item">アイテム本体の編集（銃・道具など）</option>
+          <option value="attachment">パーツ/アタッチメント単体の編集</option>
         </select>
       </div>
 
-      <div class="form-group">
-        <label>編集するアイテム</label>
-        <select id="edit-item-select"></select>
+      <!-- モード1: アイテム編集 -->
+      <div id="mode-item-container">
+        <div class="form-group">
+          <label>カテゴリ</label>
+          <select id="edit-category-select">
+            <option value="weapon">武器クラフト</option>
+            <option value="crime">手芸クラフト</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>編集するアイテム</label>
+          <select id="edit-item-select"></select>
+        </div>
+
+        <div id="item-form-area" class="edit-section">
+          <div class="form-group">
+            <label>アイテム名</label>
+            <input type="text" id="edit-item-name" placeholder="例: APピストル">
+          </div>
+
+          <div class="form-group">
+            <label>本体の労働力 (pt)</label>
+            <input type="number" id="edit-item-labor" value="10" min="0">
+          </div>
+
+          <label>本体の必要素材:</label>
+          <div id="item-mats-container"></div>
+          <button class="btn btn-gray" id="add-item-mat-btn" style="font-size: 11px; padding: 2px 6px; margin: 4px 0 12px 0;">＋ 素材枠追加</button>
+
+          <label>付属させるアタッチメント/パーツ（選択式）:</label>
+          <div class="attach-select-list" id="attach-checkbox-list"></div>
+        </div>
       </div>
 
-      <hr style="border-color: var(--border-color); margin: 15px 0;">
+      <!-- モード2: アタッチメント単体編集 -->
+      <div id="mode-attach-container" style="display: none;">
+        <div class="form-group">
+          <label>編集するアタッチメント/パーツ</label>
+          <select id="edit-attach-select"></select>
+        </div>
 
-      <div id="edit-parts-list"></div>
-
-      <button id="add-part-btn" class="btn btn-gray" style="width: 100%; justify-content: center; margin-bottom: 15px;">＋ パーツ/アタッチメントを追加</button>
+        <div id="attach-form-area" class="edit-section">
+          <div class="form-group">
+            <label>アタッチメント名</label>
+            <input type="text" id="edit-attach-name" placeholder="例: 大容量マガジン">
+          </div>
+          <div class="form-group">
+            <label>労働力 (pt)</label>
+            <input type="number" id="edit-attach-labor" value="5" min="0">
+          </div>
+          <label>必要素材:</label>
+          <div id="attach-mats-container"></div>
+          <button class="btn btn-gray" id="add-attach-mat-btn" style="font-size: 11px; padding: 2px 6px; margin-top: 4px;">＋ 素材枠追加</button>
+        </div>
+      </div>
 
       <div class="modal-actions">
         <button id="close-modal-btn" class="btn btn-gray">キャンセル</button>
@@ -296,35 +336,39 @@
   </div>
 
   <script>
+    // マスターデータ構造のアップデート（アタッチメント独立化）
     let recipeData = {
+      attachments: {
+        suppressor: { name: "🔹 サプレッサー", labor: 5, materials: { "高品質な鉄": 4 } },
+        ammo_9mm: { name: "🔹 9mm弾", labor: 2, materials: { "ガンパウダー": 2 } },
+        hacking_pc: { name: "🔹 ハッキングPC", labor: 20, materials: { "精密部品": 10, "電子部品": 15 } },
+        thermite: { name: "🔹 サーマイト爆薬", labor: 10, materials: { "マグネシウム": 5 } }
+      },
       weapon: {
         heavy_pistol: {
           name: "ヘビーピストル",
-          parts: [
-            { id: "base", name: "🔹 本体", labor: 10, required: true, defaultQty: 1, materials: { "高品質な鉄": 10, "スプリング": 3 } },
-            { id: "suppressor", name: "🔹 サプレッサー", labor: 5, required: false, defaultOn: true, defaultQty: 1, materials: { "高品質な鉄": 4 } },
-            { id: "ammo_9mm", name: "🔹 9mm弾", labor: 2, required: false, defaultOn: true, defaultQty: 1, materials: { "ガンパウダー": 2 } }
-          ]
+          labor: 10,
+          materials: { "高品質な鉄": 10, "スプリング": 3 },
+          attachmentIds: ["suppressor", "ammo_9mm"]
         },
         armor: {
           name: "防弾チョッキ",
-          parts: [
-            { id: "base", name: "🔹 本体", labor: 15, required: true, defaultQty: 1, materials: { "プラスチック": 8, "布": 12 } }
-          ]
+          labor: 15,
+          materials: { "プラスチック": 8, "布": 12 },
+          attachmentIds: []
         }
       },
       crime: {
         pacific: {
           name: "パシフィック銀行強盗",
-          parts: [
-            { id: "hacking_pc", name: "🔹 ハッキングPC", labor: 20, required: false, defaultOn: true, defaultQty: 1, materials: { "精密部品": 10, "電子部品": 15 } },
-            { id: "thermite", name: "🔹 サーマイト爆薬", labor: 10, required: false, defaultOn: true, defaultQty: 1, materials: { "マグネシウム": 5 } }
-          ]
+          labor: 0,
+          materials: {},
+          attachmentIds: ["hacking_pc", "thermite"]
         }
       }
     };
 
-    const saved = localStorage.getItem('craft_recipes_data');
+    const saved = localStorage.getItem('craft_recipes_data_v2');
     if (saved) {
       try { recipeData = JSON.parse(saved); } catch(e) {}
     }
@@ -354,54 +398,63 @@
 
       render() {
         const itemKey = this.selectEl.value;
-        const recipe = this.categoryData[itemKey];
+        const item = this.categoryData[itemKey];
         this.partsEl.innerHTML = '';
 
-        if (!recipe) return;
+        if (!item) return;
 
-        recipe.parts.forEach(part => {
+        // 本体の表示（素材がある場合のみ）
+        if (Object.keys(item.materials).length > 0 || item.labor > 0) {
+          const baseBox = document.createElement('div');
+          baseBox.className = 'part-box';
+          let matListHTML = `<ul class="mat-list"><li><span class="labor-tag">労働力</span>: ${item.labor} pt</li>`;
+          for (const [mat, qty] of Object.entries(item.materials)) {
+            matListHTML += `<li>${mat}: ${qty} 個</li>`;
+          }
+          matListHTML += '</ul>';
+          baseBox.innerHTML = `
+            <div class="part-header">
+              <strong>🔹 本体 (${item.name})</strong>
+              <div class="qty-input-wrapper">
+                <span>数量:</span>
+                <input type="number" class="base-qty-input" value="1" min="1">
+              </div>
+            </div>
+            ${matListHTML}
+          `;
+          this.partsEl.appendChild(baseBox);
+        }
+
+        // 関連アタッチメントの表示
+        (item.attachmentIds || []).forEach(attId => {
+          const att = recipeData.attachments[attId];
+          if (!att) return;
+
           const box = document.createElement('div');
           box.className = 'part-box';
-
-          let matListHTML = `<ul class="mat-list"><li><span class="labor-tag">労働力</span>: ${part.labor} pt</li>`;
-          for (const [mat, qty] of Object.entries(part.materials)) {
+          let matListHTML = `<ul class="mat-list"><li><span class="labor-tag">労働力</span>: ${att.labor} pt</li>`;
+          for (const [mat, qty] of Object.entries(att.materials)) {
             matListHTML += `<li>${mat}: ${qty} 個</li>`;
           }
           matListHTML += '</ul>';
 
-          const initQty = part.defaultQty || 1;
-
-          if (part.required) {
-            box.innerHTML = `
-              <div class="part-header">
-                <strong>${part.name}</strong>
-                <div class="qty-input-wrapper">
-                  <span>数量:</span>
-                  <input type="number" class="part-qty-input" data-part-id="${part.id}" value="${initQty}" min="1">
-                </div>
+          box.innerHTML = `
+            <div class="part-header">
+              <label class="checkbox-label">
+                <input type="checkbox" class="att-checkbox" data-att-id="${attId}" checked>
+                ${att.name}
+              </label>
+              <div class="qty-input-wrapper">
+                <span>数量:</span>
+                <input type="number" class="att-qty-input" data-att-id="${attId}" value="1" min="1">
               </div>
-              ${matListHTML}
-            `;
-          } else {
-            const checked = part.defaultOn ? 'checked' : '';
-            box.innerHTML = `
-              <div class="part-header">
-                <label class="checkbox-label">
-                  <input type="checkbox" class="part-checkbox" data-part-id="${part.id}" ${checked}>
-                  ${part.name}
-                </label>
-                <div class="qty-input-wrapper">
-                  <span>数量:</span>
-                  <input type="number" class="part-qty-input" data-part-id="${part.id}" value="${initQty}" min="1">
-                </div>
-              </div>
-              ${matListHTML}
-            `;
-          }
+            </div>
+            ${matListHTML}
+          `;
           this.partsEl.appendChild(box);
         });
 
-        this.partsEl.querySelectorAll('.part-checkbox, .part-qty-input').forEach(el => {
+        this.partsEl.querySelectorAll('input').forEach(el => {
           el.addEventListener('input', () => this.calculate());
           el.addEventListener('change', () => this.calculate());
         });
@@ -411,26 +464,33 @@
 
       calculate() {
         const itemKey = this.selectEl.value;
-        const recipe = this.categoryData[itemKey];
+        const item = this.categoryData[itemKey];
         let totalLabor = 0;
         const totalMaterials = {};
 
-        if (!recipe) return;
+        if (!item) return;
 
-        recipe.parts.forEach(part => {
-          let isIncluded = part.required;
-          if (!part.required) {
-            const cb = this.partsEl.querySelector(`.part-checkbox[data-part-id="${part.id}"]`);
-            if (cb && cb.checked) isIncluded = true;
+        // 本体の計算
+        const baseQtyInput = this.partsEl.querySelector('.base-qty-input');
+        if (baseQtyInput) {
+          const baseQty = Math.max(1, parseInt(baseQtyInput.value) || 1);
+          totalLabor += item.labor * baseQty;
+          for (const [mat, qty] of Object.entries(item.materials)) {
+            totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * baseQty;
           }
+        }
 
-          if (isIncluded) {
-            const qtyInput = this.partsEl.querySelector(`.part-qty-input[data-part-id="${part.id}"]`);
-            const partQty = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1) || 1);
+        // アタッチメントの計算
+        (item.attachmentIds || []).forEach(attId => {
+          const cb = this.partsEl.querySelector(`.att-checkbox[data-att-id="${attId}"]`);
+          if (cb && cb.checked) {
+            const qtyInput = this.partsEl.querySelector(`.att-qty-input[data-att-id="${attId}"]`);
+            const attQty = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1) || 1);
+            const att = recipeData.attachments[attId];
 
-            totalLabor += part.labor * partQty;
-            for (const [mat, qty] of Object.entries(part.materials)) {
-              totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * partQty;
+            totalLabor += att.labor * attQty;
+            for (const [mat, qty] of Object.entries(att.materials)) {
+              totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * attQty;
             }
           }
         });
@@ -442,26 +502,42 @@
       }
     }
 
-    const weaponCalc = new CraftCalculator('weapon', recipeData.weapon, 
-      document.getElementById('weapon-select'), 
-      document.getElementById('weapon-parts'), 
-      document.getElementById('weapon-totals')
-    );
+    const weaponCalc = new CraftCalculator('weapon', recipeData.weapon, document.getElementById('weapon-select'), document.getElementById('weapon-parts'), document.getElementById('weapon-totals'));
+    const crimeCalc = new CraftCalculator('crime', recipeData.crime, document.getElementById('crime-select'), document.getElementById('crime-parts'), document.getElementById('crime-totals'));
 
-    const crimeCalc = new CraftCalculator('crime', recipeData.crime, 
-      document.getElementById('crime-select'), 
-      document.getElementById('crime-parts'), 
-      document.getElementById('crime-totals')
-    );
-
-    // --- 簡易レシピ編集モーダルの処理 ---
+    // モーダル編集ロジック
     const modal = document.getElementById('edit-modal');
+    const modeSelect = document.getElementById('edit-mode-select');
+    const modeItemCont = document.getElementById('mode-item-container');
+    const modeAttachCont = document.getElementById('mode-attach-container');
+
     const editCatSelect = document.getElementById('edit-category-select');
     const editItemSelect = document.getElementById('edit-item-select');
-    const editPartsList = document.getElementById('edit-parts-list');
+    const editItemName = document.getElementById('edit-item-name');
+    const editItemLabor = document.getElementById('edit-item-labor');
+    const itemMatsContainer = document.getElementById('item-mats-container');
+    const attachCheckboxList = document.getElementById('attach-checkbox-list');
 
-    function updateEditItemOptions() {
-      editItemSelect.innerHTML = '';
+    const editAttachSelect = document.getElementById('edit-attach-select');
+    const editAttachName = document.getElementById('edit-attach-name');
+    const editAttachLabor = document.getElementById('edit-attach-labor');
+    const attachMatsContainer = document.getElementById('attach-mats-container');
+
+    modeSelect.addEventListener('change', () => {
+      if (modeSelect.value === 'item') {
+        modeItemCont.style.display = 'block';
+        modeAttachCont.style.display = 'none';
+        updateItemSelectOptions();
+      } else {
+        modeItemCont.style.display = 'none';
+        modeAttachCont.style.display = 'block';
+        updateAttachSelectOptions();
+      }
+    });
+
+    // --- アイテム編集フォーム制御 ---
+    function updateItemSelectOptions() {
+      editItemSelect.innerHTML = '<option value="__new__">【＋ 新規アイテムを追加】</option>';
       const cat = editCatSelect.value;
       for (const [key, item] of Object.entries(recipeData[cat])) {
         const opt = document.createElement('option');
@@ -469,163 +545,156 @@
         opt.textContent = item.name;
         editItemSelect.appendChild(opt);
       }
-      renderEditForm();
+      renderItemForm();
     }
 
-    function renderEditForm() {
-      editPartsList.innerHTML = '';
+    function renderItemForm() {
       const cat = editCatSelect.value;
-      const itemKey = editItemSelect.value;
-      if (!itemKey || !recipeData[cat][itemKey]) return;
+      const key = editItemSelect.value;
+      itemMatsContainer.innerHTML = '';
+      attachCheckboxList.innerHTML = '';
 
-      const recipe = recipeData[cat][itemKey];
+      let item = { name: '', labor: 0, materials: {}, attachmentIds: [] };
+      if (key !== '__new__' && recipeData[cat][key]) {
+        item = recipeData[cat][key];
+      }
 
-      recipe.parts.forEach((part, index) => {
-        const div = document.createElement('div');
-        div.className = 'edit-part-card';
+      editItemName.value = item.name;
+      editItemLabor.value = item.labor;
 
-        let matsHTML = '';
-        for (const [mat, qty] of Object.entries(part.materials)) {
-          matsHTML += `
-            <div class="mat-input-row">
-              <input type="text" class="edit-mat-name" value="${mat}" placeholder="素材名">
-              <input type="number" class="edit-mat-qty" value="${qty}" min="1" placeholder="個数" style="width: 80px;">
-            </div>
-          `;
-        }
+      // 素材描画
+      for (const [mat, qty] of Object.entries(item.materials)) {
+        addMatRow(itemMatsContainer, mat, qty);
+      }
 
-        div.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <input type="text" class="edit-part-name" value="${part.name}" placeholder="パーツ名" style="font-weight: bold; width: 60%;">
-            <button class="btn btn-red delete-part-btn" style="padding: 2px 8px; font-size: 12px;">削除</button>
-          </div>
-          <div style="margin-bottom: 8px;">
-            <label style="font-size: 12px;">労働力 (pt):</label>
-            <input type="number" class="edit-part-labor" value="${part.labor}" min="0">
-          </div>
-          <label style="font-size: 12px;">必要素材:</label>
-          <div class="mat-list-container">${matsHTML}</div>
-          <button class="btn btn-gray add-mat-btn" style="font-size: 11px; padding: 2px 6px; margin-top: 4px;">＋ 素材枠追加</button>
-        `;
-
-        editPartsList.appendChild(div);
-      });
-
-      // イベントバインド (素材追加・パーツ削除)
-      editPartsList.querySelectorAll('.add-mat-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const container = e.target.previousElementSibling;
-          const row = document.createElement('div');
-          row.className = 'mat-input-row';
-          row.innerHTML = `
-            <input type="text" class="edit-mat-name" placeholder="素材名">
-            <input type="number" class="edit-mat-qty" value="1" min="1" placeholder="個数" style="width: 80px;">
-          `;
-          container.appendChild(row);
-        });
-      });
-
-      editPartsList.querySelectorAll('.delete-part-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.target.closest('.edit-part-card').remove();
-        });
-      });
+      // アタッチメント選択チェックボックス群描画
+      for (const [attId, att] of Object.entries(recipeData.attachments)) {
+        const isChecked = (item.attachmentIds || []).includes(attId) ? 'checked' : '';
+        const label = document.createElement('label');
+        label.className = 'checkbox-label';
+        label.style.fontSize = '13px';
+        label.innerHTML = `<input type="checkbox" class="edit-item-att-cb" value="${attId}" ${isChecked}> ${att.name}`;
+        attachCheckboxList.appendChild(label);
+      }
     }
 
-    editCatSelect.addEventListener('change', updateEditItemOptions);
-    editItemSelect.addEventListener('change', renderEditForm);
+    // --- アタッチメント編集フォーム制御 ---
+    function updateAttachSelectOptions() {
+      editAttachSelect.innerHTML = '<option value="__new__">【＋ 新規アタッチメントを追加】</option>';
+      for (const [key, att] of Object.entries(recipeData.attachments)) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = att.name;
+        editAttachSelect.appendChild(opt);
+      }
+      renderAttachForm();
+    }
 
-    document.getElementById('add-part-btn').addEventListener('click', () => {
-      const div = document.createElement('div');
-      div.className = 'edit-part-card';
-      div.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <input type="text" class="edit-part-name" value="🔹 新規パーツ" style="font-weight: bold; width: 60%;">
-          <button class="btn btn-red delete-part-btn" style="padding: 2px 8px; font-size: 12px;">削除</button>
-        </div>
-        <div style="margin-bottom: 8px;">
-          <label style="font-size: 12px;">労働力 (pt):</label>
-          <input type="number" class="edit-part-labor" value="0" min="0">
-        </div>
-        <label style="font-size: 12px;">必要素材:</label>
-        <div class="mat-list-container">
-          <div class="mat-input-row">
-            <input type="text" class="edit-mat-name" placeholder="素材名">
-            <input type="number" class="edit-mat-qty" value="1" min="1" style="width: 80px;">
-          </div>
-        </div>
-        <button class="btn btn-gray add-mat-btn" style="font-size: 11px; padding: 2px 6px; margin-top: 4px;">＋ 素材枠追加</button>
+    function renderAttachForm() {
+      const key = editAttachSelect.value;
+      attachMatsContainer.innerHTML = '';
+
+      let att = { name: '', labor: 0, materials: {} };
+      if (key !== '__new__' && recipeData.attachments[key]) {
+        att = recipeData.attachments[key];
+      }
+
+      editAttachName.value = att.name;
+      editAttachLabor.value = att.labor;
+
+      for (const [mat, qty] of Object.entries(att.materials)) {
+        addMatRow(attachMatsContainer, mat, qty);
+      }
+    }
+
+    function addMatRow(container, name = '', qty = 1) {
+      const row = document.createElement('div');
+      row.className = 'mat-input-row';
+      row.innerHTML = `
+        <input type="text" class="edit-mat-name" value="${name}" placeholder="素材名">
+        <input type="number" class="edit-mat-qty" value="${qty}" min="1" style="width: 80px;">
+        <button class="btn btn-red" style="padding: 2px 6px; font-size: 11px;">×</button>
       `;
-      editPartsList.appendChild(div);
+      row.querySelector('button').addEventListener('click', () => row.remove());
+      container.appendChild(row);
+    }
 
-      div.querySelector('.add-mat-btn').addEventListener('click', (e) => {
-        const container = e.target.previousElementSibling;
-        const row = document.createElement('div');
-        row.className = 'mat-input-row';
-        row.innerHTML = `
-          <input type="text" class="edit-mat-name" placeholder="素材名">
-          <input type="number" class="edit-mat-qty" value="1" min="1" style="width: 80px;">
-        `;
-        container.appendChild(row);
-      });
+    document.getElementById('add-item-mat-btn').addEventListener('click', () => addMatRow(itemMatsContainer));
+    document.getElementById('add-attach-mat-btn').addEventListener('click', () => addMatRow(attachMatsContainer));
 
-      div.querySelector('.delete-part-btn').addEventListener('click', () => div.remove());
-    });
+    editCatSelect.addEventListener('change', updateItemSelectOptions);
+    editItemSelect.addEventListener('change', renderItemForm);
+    editAttachSelect.addEventListener('change', renderAttachForm);
 
     document.getElementById('edit-recipe-btn').addEventListener('click', () => {
-      updateEditItemOptions();
+      updateItemSelectOptions();
       modal.classList.add('active');
     });
 
-    document.getElementById('close-modal-btn').addEventListener('click', () => {
-      modal.classList.remove('active');
-    });
+    document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.remove('active'));
 
+    // 保存ボタン処理
     document.getElementById('save-modal-btn').addEventListener('click', () => {
-      const cat = editCatSelect.value;
-      const itemKey = editItemSelect.value;
+      if (modeSelect.value === 'item') {
+        const cat = editCatSelect.value;
+        let key = editItemSelect.value;
+        const name = editItemName.value.trim();
+        if (!name) return alert('アイテム名を入力してください。');
 
-      const newParts = [];
-      const partCards = editPartsList.querySelectorAll('.edit-part-card');
+        if (key === '__new__') key = `item_${Date.now()}`;
 
-      partCards.forEach((card, idx) => {
-        const name = card.querySelector('.edit-part-name').value;
-        const labor = parseInt(card.querySelector('.edit-part-labor').value) || 0;
         const materials = {};
-
-        const matRows = card.querySelectorAll('.mat-input-row');
-        matRows.forEach(row => {
-          const matName = row.querySelector('.edit-mat-name').value.trim();
-          const matQty = parseInt(row.querySelector('.edit-mat-qty').value) || 0;
-          if (matName && matQty > 0) {
-            materials[matName] = matQty;
-          }
+        itemMatsContainer.querySelectorAll('.mat-input-row').forEach(row => {
+          const mName = row.querySelector('.edit-mat-name').value.trim();
+          const mQty = parseInt(row.querySelector('.edit-mat-qty').value) || 0;
+          if (mName && mQty > 0) materials[mName] = mQty;
         });
 
-        newParts.push({
-          id: `part_${idx}_${Date.now()}`,
+        const attachmentIds = [];
+        attachCheckboxList.querySelectorAll('.edit-item-att-cb:checked').forEach(cb => {
+          attachmentIds.push(cb.value);
+        });
+
+        recipeData[cat][key] = {
           name: name,
-          labor: labor,
-          required: idx === 0, // 最初のパーツのみ本体として必須扱い
-          defaultOn: true,
-          defaultQty: 1,
-          materials: materials
+          labor: parseInt(editItemLabor.value) || 0,
+          materials: materials,
+          attachmentIds: attachmentIds
+        };
+
+      } else { // アタッチメント保存
+        let key = editAttachSelect.value;
+        const name = editAttachName.value.trim();
+        if (!name) return alert('アタッチメント名を入力してください。');
+
+        if (key === '__new__') key = `att_${Date.now()}`;
+
+        const materials = {};
+        attachMatsContainer.querySelectorAll('.mat-input-row').forEach(row => {
+          const mName = row.querySelector('.edit-mat-name').value.trim();
+          const mQty = parseInt(row.querySelector('.edit-mat-qty').value) || 0;
+          if (mName && mQty > 0) materials[mName] = mQty;
         });
-      });
 
-      recipeData[cat][itemKey].parts = newParts;
-      localStorage.setItem('craft_recipes_data', JSON.stringify(recipeData));
+        recipeData.attachments[key] = {
+          name: name,
+          labor: parseInt(editAttachLabor.value) || 0,
+          materials: materials
+        };
+      }
 
+      localStorage.setItem('craft_recipes_data_v2', JSON.stringify(recipeData));
+      weaponCalc.updateSelectOptions();
+      crimeCalc.updateSelectOptions();
       weaponCalc.render();
       crimeCalc.render();
       modal.classList.remove('active');
-      alert('レシピを更新しました！');
+      alert('保存が完了しました！');
     });
 
-    // --- エクスポート / インポート ---
+    // データ入出力
     document.getElementById('export-btn').addEventListener('click', () => {
-      const dataStr = JSON.stringify(recipeData, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(recipeData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -645,9 +714,9 @@
       reader.onload = (event) => {
         try {
           const imported = JSON.parse(event.target.result);
-          if (imported.weapon && imported.crime) {
+          if (imported.weapon && imported.crime && imported.attachments) {
             recipeData = imported;
-            localStorage.setItem('craft_recipes_data', JSON.stringify(recipeData));
+            localStorage.setItem('craft_recipes_data_v2', JSON.stringify(recipeData));
             weaponCalc.categoryData = recipeData.weapon;
             crimeCalc.categoryData = recipeData.crime;
             weaponCalc.updateSelectOptions();
@@ -655,12 +724,8 @@
             weaponCalc.render();
             crimeCalc.render();
             alert('データの読み込みが完了しました！');
-          } else {
-            alert('形式が正しくありません。');
-          }
-        } catch (err) {
-          alert('JSONファイルの読み込みに失敗しました。');
-        }
+          } else { alert('形式が正しくありません。'); }
+        } catch (err) { alert('読み込みに失敗しました。'); }
       };
       reader.readAsText(file);
     });
