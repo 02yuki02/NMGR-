@@ -2,175 +2,396 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FiveM クラフト計算機</title>
   <style>
-    body { font-family: sans-serif; background-color: #1a202c; color: #e2e8f0; padding: 20px; }
-    .card { background-color: #2d3748; padding: 20px; border-radius: 8px; max-width: 500px; margin-bottom: 20px; }
-    h2 { color: #f6ad55; margin-top: 0; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    select, input[type="number"] { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #4a5568; background: #1a202c; color: #fff; box-sizing: border-box; }
-    .option-group { background: #1a202c; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
-    .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold; color: #ed8936; }
+    :root {
+      --bg-color: #1a1c23;
+      --card-bg: #232631;
+      --sub-card-bg: #2a2d3d;
+      --text-color: #e2e8f0;
+      --accent-orange: #ed8936;
+      --accent-blue: #63b3ed;
+      --border-color: #3f4457;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+    }
+
+    /* ヘッダー・ツールバー */
+    .toolbar {
+      background-color: var(--card-bg);
+      padding: 12px 16px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 24px;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #ffffff;
+    }
+    .btn-green { background-color: #38a169; }
+    .btn-green:hover { background-color: #2f855a; }
+    .btn-gray { background-color: #4a5568; }
+    .btn-gray:hover { background-color: #374151; }
+
+    /* メインコンテンツ grid */
+    .calculator-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 20px;
+    }
+
+    /* カードデザイン */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--accent-orange);
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    select, input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-color);
+      color: #fff;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    /* オプション・パーツ選択エリア */
+    .parts-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .part-box {
+      background-color: var(--sub-card-bg);
+      padding: 12px;
+      border-radius: 6px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--accent-orange);
+    }
     .checkbox-label input { width: auto; cursor: pointer; }
-    .material-list { margin-top: 8px; padding-left: 20px; font-size: 14px; color: #cbd5e0; }
-    .labor-tag { color: #63b3ed; font-weight: bold; }
-    .total-box { background: #1a202c; padding: 15px; border-radius: 6px; border-left: 4px solid #f6ad55; margin-top: 20px; }
-    .total-box h3 { margin-top: 0; font-size: 16px; color: #f6ad55; }
-    .total-box ul { padding-left: 20px; margin-bottom: 0; }
+
+    .mat-list {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+      font-size: 13px;
+      color: #cbd5e0;
+    }
+
+    .labor-tag {
+      color: var(--accent-blue);
+      font-weight: bold;
+    }
+
+    /* 合計出力ボックス */
+    .total-box {
+      background-color: var(--bg-color);
+      padding: 14px;
+      border-radius: 6px;
+      border-left: 4px solid var(--accent-orange);
+    }
+
+    .total-box h3 {
+      margin: 0 0 10px 0;
+      font-size: 15px;
+      color: var(--accent-orange);
+    }
+
+    .total-box ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>[9023]武器クラフト【武器・防具】</h2>
+  <!-- ツールバーエリア -->
+  <div class="toolbar">
+    <button class="btn btn-green">📝 レシピを編集・追加する</button>
 
-  <div class="form-group">
-    <label for="item-select">作成する武器・防具</label>
-    <select id="item-select">
-      <option value="heavy_pistol">ヘビーピストル</option>
-      <option value="armor">防弾チョッキ</option>
-    </select>
+    <!-- JSON データ入出力機能 -->
+    <button id="export-btn" class="btn btn-gray">💾 データを書き出す</button>
+    <input type="file" id="import-file" accept=".json" style="display: none;" />
+    <button id="import-btn" class="btn btn-gray">📂 データを読み込む</button>
   </div>
 
-  <div class="form-group">
-    <label for="item-count">作成する個数</label>
-    <input type="number" id="item-count" value="1" min="1" />
-  </div>
+  <!-- 計算機メイン領域 -->
+  <div class="calculator-grid">
 
-  <!-- 動的に生成されるパーツ・オプションエリア -->
-  <div id="craft-options"></div>
-
-  <!-- 合計結果エリア -->
-  <div class="total-box">
-    <h3>📦 必要な全素材・労働力の合計</h3>
-    <ul id="total-materials"></ul>
-  </div>
-</div>
-
-<script>
-  // レシピデータ定義（労働力: labor を追加）
-  const recipes = {
-    heavy_pistol: {
-      name: "ヘビーピストル",
-      base: {
-        title: "🔹 本体",
-        labor: 10, // 労働力 (1個あたり)
-        materials: { "高品質な鉄": 10, "スプリング": 3 }
-      },
-      options: [
-        {
-          id: "suppressor",
-          title: "🔹 サプレッサー",
-          labor: 5,
-          materials: { "高品質な鉄": 4 }
-        },
-        {
-          id: "ammo_9mm",
-          title: "🔹 9mm弾",
-          labor: 2,
-          materials: { "ガンパウダー": 2 }
-        }
-      ]
-    },
-    armor: {
-      name: "防弾チョッキ",
-      base: {
-        title: "🔹 本体",
-        labor: 15,
-        materials: { "プラスチック": 8, "布": 12 }
-      },
-      options: []
-    }
-  };
-
-  const itemSelect = document.getElementById('item-select');
-  const itemCountInput = document.getElementById('item-count');
-  const craftOptionsDiv = document.getElementById('craft-options');
-  const totalMaterialsUl = document.getElementById('total-materials');
-
-  function renderUI() {
-    const selectedKey = itemSelect.value;
-    const recipe = recipes[selectedKey];
-    craftOptionsDiv.innerHTML = '';
-
-    // 本体パーツ表示
-    const baseGroup = document.createElement('div');
-    baseGroup.className = 'option-group';
-    let baseMatHTML = `<ul><li><span class="labor-tag">労働力</span>: ${recipe.base.labor}pt</li>`;
-    for (const [mat, qty] of Object.entries(recipe.base.materials)) {
-      baseMatHTML += `<li>${mat}: ${qty}個</li>`;
-    }
-    baseMatHTML += '</ul>';
-    baseGroup.innerHTML = `<strong>${recipe.base.title}</strong><div class="material-list">${baseMatHTML}</div>`;
-    craftOptionsDiv.appendChild(baseGroup);
-
-    // 選択式オプション（アタッチメント・弾薬等）表示
-    recipe.options.forEach(opt => {
-      const optGroup = document.createElement('div');
-      optGroup.className = 'option-group';
+    <!-- 1. 武器クラフト -->
+    <div class="card" id="weapon-craft-card">
+      <h2>[9023]武器クラフト【武器・防具】</h2>
       
-      let optMatHTML = `<ul><li><span class="labor-tag">労働力</span>: ${opt.labor}pt</li>`;
-      for (const [mat, qty] of Object.entries(opt.materials)) {
-        optMatHTML += `<li>${mat}: ${qty}個</li>`;
-      }
-      optMatHTML += '</ul>';
+      <div class="form-group">
+        <label for="weapon-select">作成する武器・防具</label>
+        <select id="weapon-select">
+          <option value="heavy_pistol">ヘビーピストル</option>
+          <option value="armor">防弾チョッキ</option>
+        </select>
+      </div>
 
-      optGroup.innerHTML = `
-        <label class="checkbox-label">
-          <input type="checkbox" class="option-checkbox" data-opt-id="${opt.id}" checked />
-          ${opt.title}を作成する
-        </label>
-        <div class="material-list">${optMatHTML}</div>
-      `;
-      craftOptionsDiv.appendChild(optGroup);
-    });
+      <div class="form-group">
+        <label for="weapon-count">作成する個数</label>
+        <input type="number" id="weapon-count" value="1" min="1" />
+      </div>
 
-    // イベント再バインド＆計算実行
-    document.querySelectorAll('.option-checkbox').forEach(cb => {
-      cb.addEventListener('change', calculateTotals);
-    });
-    calculateTotals();
-  }
+      <div class="parts-container" id="weapon-parts"></div>
 
-  function calculateTotals() {
-    const selectedKey = itemSelect.value;
-    const count = parseInt(itemCountInput.value) || 1;
-    const recipe = recipes[selectedKey];
+      <div class="total-box">
+        <h3>📦 必要な全素材の合計数</h3>
+        <ul id="weapon-totals"></ul>
+      </div>
+    </div>
 
-    let totalLabor = recipe.base.labor * count;
-    const totals = {};
+    <!-- 2. 手芸クラフト -->
+    <div class="card" id="crime-craft-card">
+      <h2>[3057]手芸クラフト【犯罪道具】</h2>
 
-    // 本体の素材計算
-    for (const [mat, qty] of Object.entries(recipe.base.materials)) {
-      totals[mat] = (totals[mat] || 0) + qty * count;
-    }
+      <div class="form-group">
+        <label for="crime-select">ターゲットの犯罪</label>
+        <select id="crime-select">
+          <option value="pacific">パシフィック銀行強盗</option>
+        </select>
+      </div>
 
-    // チェックされたオプションの計算
-    document.querySelectorAll('.option-checkbox:checked').forEach(cb => {
-      const optId = cb.getAttribute('data-opt-id');
-      const opt = recipe.options.find(o => o.id === optId);
-      if (opt) {
-        totalLabor += opt.labor * count;
-        for (const [mat, qty] of Object.entries(opt.materials)) {
-          totals[mat] = (totals[mat] || 0) + qty * count;
+      <div class="form-group">
+        <label for="crime-count">実行する回数（セット数）</label>
+        <input type="number" id="crime-count" value="1" min="1" />
+      </div>
+
+      <div class="parts-container" id="crime-parts"></div>
+
+      <div class="total-box">
+        <h3>📦 必要な全素材の合計数</h3>
+        <ul id="crime-totals"></ul>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // レシピマスターデータ（労働力: labor を追加）
+    let recipeData = {
+      weapon: {
+        heavy_pistol: {
+          name: "ヘビーピストル",
+          parts: [
+            { id: "base", name: "🔹 本体", labor: 10, required: true, materials: { "高品質な鉄": 10, "スプリング": 3 } },
+            { id: "suppressor", name: "🔹 サプレッサー", labor: 5, required: false, defaultOn: true, materials: { "高品質な鉄": 4 } },
+            { id: "ammo_9mm", name: "🔹 9mm弾", labor: 2, required: false, defaultOn: true, materials: { "ガンパウダー": 2 } }
+          ]
+        },
+        armor: {
+          name: "防弾チョッキ",
+          parts: [
+            { id: "base", name: "🔹 本体", labor: 15, required: true, materials: { "プラスチック": 8, "布": 12 } }
+          ]
+        }
+      },
+      crime: {
+        pacific: {
+          name: "パシフィック銀行強盗",
+          parts: [
+            { id: "hacking_pc", name: "🔹 ハッキングPC", labor: 20, required: false, defaultOn: true, materials: { "精密部品": 10, "電子部品": 15 } },
+            { id: "thermite", name: "🔹 サーマイト爆薬", labor: 10, required: false, defaultOn: true, materials: { "マグネシウム": 5 } }
+          ]
         }
       }
+    };
+
+    // UI描画 & 計算処理クラス
+    class CraftCalculator {
+      constructor(type, categoryData, selectEl, countEl, partsEl, totalsEl) {
+        this.type = type;
+        this.categoryData = categoryData;
+        this.selectEl = selectEl;
+        this.countEl = countEl;
+        this.partsEl = partsEl;
+        this.totalsEl = totalsEl;
+
+        this.selectEl.addEventListener('change', () => this.render());
+        this.countEl.addEventListener('input', () => this.calculate());
+        this.render();
+      }
+
+      render() {
+        const itemKey = this.selectEl.value;
+        const recipe = this.categoryData[itemKey];
+        this.partsEl.innerHTML = '';
+
+        if (!recipe) return;
+
+        recipe.parts.forEach(part => {
+          const box = document.createElement('div');
+          box.className = 'part-box';
+
+          let matListHTML = `<ul class="mat-list"><li><span class="labor-tag">労働力</span>: ${part.labor} pt</li>`;
+          for (const [mat, qty] of Object.entries(part.materials)) {
+            matListHTML += `<li>${mat}: ${qty} 個 (1個あたり: ${qty})</li>`;
+          }
+          matListHTML += '</ul>';
+
+          if (part.required) {
+            box.innerHTML = `<strong>${part.name}</strong>${matListHTML}`;
+          } else {
+            const checked = part.defaultOn ? 'checked' : '';
+            box.innerHTML = `
+              <label class="checkbox-label">
+                <input type="checkbox" class="part-checkbox" data-part-id="${part.id}" ${checked}>
+                ${part.name} を含める
+              </label>
+              ${matListHTML}
+            `;
+          }
+          this.partsEl.appendChild(box);
+        });
+
+        this.partsEl.querySelectorAll('.part-checkbox').forEach(cb => {
+          cb.addEventListener('change', () => this.calculate());
+        });
+
+        this.calculate();
+      }
+
+      calculate() {
+        const itemKey = this.selectEl.value;
+        const recipe = this.categoryData[itemKey];
+        const count = Math.max(1, parseInt(this.countEl.value) || 1);
+
+        let totalLabor = 0;
+        const totalMaterials = {};
+
+        if (!recipe) return;
+
+        recipe.parts.forEach(part => {
+          let isIncluded = part.required;
+          if (!part.required) {
+            const cb = this.partsEl.querySelector(`[data-part-id="${part.id}"]`);
+            if (cb && cb.checked) isIncluded = true;
+          }
+
+          if (isIncluded) {
+            totalLabor += part.labor * count;
+            for (const [mat, qty] of Object.entries(part.materials)) {
+              totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * count;
+            }
+          }
+        });
+
+        // 合計描画
+        this.totalsEl.innerHTML = `<li><span class="labor-tag">労働力</span>: <strong>${totalLabor} pt</strong></li>`;
+        for (const [mat, qty] of Object.entries(totalMaterials)) {
+          this.totalsEl.innerHTML += `<li>${mat}: <strong>${qty} 個</strong></li>`;
+        }
+      }
+    }
+
+    // インスタンス化
+    const weaponCalc = new CraftCalculator('weapon', recipeData.weapon, 
+      document.getElementById('weapon-select'), 
+      document.getElementById('weapon-count'), 
+      document.getElementById('weapon-parts'), 
+      document.getElementById('weapon-totals')
+    );
+
+    const crimeCalc = new CraftCalculator('crime', recipeData.crime, 
+      document.getElementById('crime-select'), 
+      document.getElementById('crime-count'), 
+      document.getElementById('crime-parts'), 
+      document.getElementById('crime-totals')
+    );
+
+    // --- JSON書き出し & 読み込み機能 ---
+    document.getElementById('export-btn').addEventListener('click', () => {
+      const dataStr = JSON.stringify(recipeData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fivem_craft_recipes_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
     });
 
-    // 合計表示の更新
-    totalMaterialsUl.innerHTML = `<li><span class="labor-tag">労働力</span>: <strong>${totalLabor} pt</strong></li>`;
-    for (const [mat, qty] of Object.entries(totals)) {
-      totalMaterialsUl.innerHTML += `<li>${mat}: <strong>${qty} 個</strong></li>`;
-    }
-  }
+    const fileInput = document.getElementById('import-file');
+    document.getElementById('import-btn').addEventListener('click', () => fileInput.click());
 
-  itemSelect.addEventListener('change', renderUI);
-  itemCountInput.addEventListener('input', calculateTotals);
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-  // 初回描画
-  renderUI();
-</script>
-
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          if (imported.weapon && imported.crime) {
+            recipeData = imported;
+            weaponCalc.categoryData = recipeData.weapon;
+            crimeCalc.categoryData = recipeData.crime;
+            weaponCalc.render();
+            crimeCalc.render();
+            alert('データの読み込みが完了しました！');
+          } else {
+            alert('形式が正しくありません。');
+          }
+        } catch (err) {
+          alert('JSONファイルの読み込みに失敗しました。');
+        }
+      };
+      reader.readAsText(file);
+    });
+  </script>
 </body>
 </html>
