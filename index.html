@@ -1,342 +1,265 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FiveM クラフト計算機</title>
   <style>
     :root {
-      --bg-color: #1a1c23;
-      --card-bg: #232631;
-      --sub-card-bg: #2a2d3d;
-      --text-color: #e2e8f0;
-      --accent-orange: #ed8936;
-      --accent-blue: #63b3ed;
-      --border-color: #3f4457;
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --text: #f8fafc;
+      --text-dim: #94a3b8;
+      --border: #334155;
+      --red: #ef4444;
+      --green: #10b981;
     }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
+      color: var(--text);
+      line-height: 1.5;
       padding: 20px;
     }
 
-    .toolbar {
-      background-color: var(--card-bg);
-      padding: 12px 16px;
-      border-radius: 8px;
+    .container { max-width: 1000px; margin: 0 auto; }
+    header {
       display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
+      justify-content: space-between;
       align-items: center;
       margin-bottom: 24px;
-      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+      gap: 12px;
     }
+    h1 { font-size: 1.5rem; font-weight: 700; }
+    .header-btns { display: flex; gap: 8px; }
 
-    .btn {
-      padding: 8px 14px;
-      border-radius: 6px;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 14px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: #ffffff;
-    }
-    .btn-green { background-color: #38a169; }
-    .btn-green:hover { background-color: #2f855a; }
-    .btn-gray { background-color: #4a5568; }
-    .btn-gray:hover { background-color: #374151; }
-    .btn-blue { background-color: #3182ce; }
-    .btn-blue:hover { background-color: #2b6cb0; }
-    .btn-red { background-color: #e53e3e; }
-
-    .calculator-grid {
+    .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
       gap: 20px;
+    }
+    @media (max-width: 500px) {
+      .grid { grid-template-columns: 1fr; }
     }
 
     .card {
-      background-color: var(--card-bg);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 20px;
-      border: 1px solid var(--border-color);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .card h2 {
-      font-size: 18px;
-      margin-top: 0;
-      margin-bottom: 16px;
-      border-bottom: 2px solid var(--accent-orange);
+    .card-title {
+      font-size: 1.2rem;
+      border-bottom: 1px solid var(--border);
       padding-bottom: 8px;
-    }
-
-    .form-group { margin-bottom: 16px; }
-
-    label {
-      display: block;
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 6px;
+      color: var(--accent);
     }
 
     select, input[type="text"], input[type="number"] {
       width: 100%;
-      padding: 10px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
       border-radius: 6px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-color);
-      color: #fff;
-      box-sizing: border-box;
-      font-size: 14px;
+      outline: none;
     }
 
-    .parts-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 16px;
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
     }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-red { background: var(--red); }
+    .btn-green { background: var(--green); }
 
     .part-box {
-      background-color: var(--sub-card-bg);
-      padding: 12px;
+      background: #0f172a;
+      border: 1px solid var(--border);
       border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
     }
-
     .part-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      margin-bottom: 8px;
     }
+    .qty-input-wrapper { display: flex; align-items: center; gap: 6px; width: auto; }
+    .qty-input-wrapper input { width: 60px; text-align: center; }
 
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      color: var(--accent-orange);
-    }
-    .checkbox-label input { width: auto; cursor: pointer; }
-
-    .qty-input-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-    }
-    .qty-input-wrapper input {
-      width: 60px;
-      padding: 4px 6px;
-      text-align: center;
-    }
-
-    .mat-list {
-      margin: 8px 0 0 0;
-      padding-left: 20px;
-      font-size: 13px;
-      color: #cbd5e0;
-    }
-
-    .labor-tag { color: var(--accent-blue); font-weight: bold; }
+    .mat-list { list-style: none; padding-left: 8px; font-size: 0.9rem; color: var(--text-dim); }
+    .mat-list li { margin-bottom: 2px; }
 
     .total-box {
-      background-color: var(--bg-color);
-      padding: 14px;
+      background: #0f172a;
+      border: 1px solid var(--accent);
       border-radius: 6px;
-      border-left: 4px solid var(--accent-orange);
+      padding: 12px;
+      margin-top: auto;
     }
-
-    .total-box h3 {
-      margin: 0 0 10px 0;
-      font-size: 15px;
-      color: var(--accent-orange);
-    }
-
-    .total-box ul { margin: 0; padding-left: 20px; font-size: 14px; }
+    .total-title { font-weight: bold; margin-bottom: 6px; color: var(--accent); }
 
     /* モーダル */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
+    .modal {
       display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7);
       justify-content: center;
       align-items: center;
       z-index: 1000;
     }
-    .modal-overlay.active { display: flex; }
-
+    .modal.active { display: flex; }
     .modal-content {
       background: var(--card-bg);
-      padding: 20px;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      width: 90%;
-      max-width: 550px;
+      width: 90%; max-width: 500px;
       max-height: 85vh;
       overflow-y: auto;
-      border: 1px solid var(--border-color);
-    }
-
-    .edit-section {
-      background: var(--sub-card-bg);
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 12px;
-    }
-
-    .mat-input-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .attach-select-list {
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      max-height: 150px;
-      overflow-y: auto;
-      background: var(--bg-color);
-      padding: 8px;
-      border-radius: 4px;
+      gap: 12px;
     }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+    .mat-input-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .checkbox-group { display: flex; flex-direction: column; gap: 4px; max-height: 100px; overflow-y: auto; background: #0f172a; padding: 6px; border-radius: 4px; }
+    .checkbox-label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .labor-tag { color: #f59e0b; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <div class="toolbar">
-    <button id="edit-recipe-btn" class="btn btn-green">📝 レシピを編集・追加する</button>
-    <button id="export-btn" class="btn btn-gray">💾 データを書き出す</button>
-    <input type="file" id="import-file" accept=".json" style="display: none;" />
-    <button id="import-btn" class="btn btn-gray">📂 データを読み込む</button>
-  </div>
+  <div class="container">
+    <header>
+      <h1>FiveM クラフト計算機</h1>
+      <div class="header-btns">
+        <button id="edit-recipe-btn" class="btn">🛠 レシピ編集</button>
+        <button id="export-btn" class="btn btn-green">📤 エクスポート</button>
+        <button id="import-btn" class="btn">📥 インポート</button>
+        <input type="file" id="import-file" accept=".json" style="display: none;">
+      </div>
+    </header>
 
-  <div class="calculator-grid">
-
-    <!-- 1. 武器クラフト -->
-    <div class="card">
-      <h2>[9023]武器クラフト【武器・防具】</h2>
-      <div class="form-group">
-        <label for="weapon-select">作成する武器・防具</label>
+    <div class="grid">
+      <!-- 武器・アイテム計算機 -->
+      <div class="card">
+        <h2 class="card-title">🔫 武器・作成物</h2>
         <select id="weapon-select"></select>
+        <div id="weapon-parts"></div>
+        <div class="total-box">
+          <div class="total-title">必要合計素材</div>
+          <ul id="weapon-totals" class="mat-list"></ul>
+        </div>
       </div>
-      <div class="parts-container" id="weapon-parts"></div>
-      <div class="total-box">
-        <h3>📦 必要な全素材の合計数</h3>
-        <ul id="weapon-totals"></ul>
-      </div>
-    </div>
 
-    <!-- 2. 手芸クラフト -->
-    <div class="card">
-      <h2>[3057]手芸クラフト【犯罪道具】</h2>
-      <div class="form-group">
-        <label for="crime-select">ターゲットの犯罪</label>
+      <!-- 強盗・犯罪ツール計算機 -->
+      <div class="card">
+        <h2 class="card-title">💰 強盗・犯罪ツール</h2>
         <select id="crime-select"></select>
-      </div>
-      <div class="parts-container" id="crime-parts"></div>
-      <div class="total-box">
-        <h3>📦 必要な全素材の合計数</h3>
-        <ul id="crime-totals"></ul>
+        <div id="crime-parts"></div>
+        <div class="total-box">
+          <div class="total-title">必要合計素材</div>
+          <ul id="crime-totals" class="mat-list"></ul>
+        </div>
       </div>
     </div>
-
   </div>
 
   <!-- レシピ編集モーダル -->
-  <div class="modal-overlay" id="edit-modal">
+  <div id="edit-modal" class="modal">
     <div class="modal-content">
-      <h2>📝 レシピ・アタッチメントの編集</h2>
-      
-      <div class="form-group">
-        <label>編集モードを選択</label>
+      <h2>レシピの編集</h2>
+
+      <label>編集モード
         <select id="edit-mode-select">
-          <option value="item">アイテム本体の編集（銃・道具など）</option>
-          <option value="attachment">パーツ/アタッチメント単体の編集</option>
+          <option value="item">アイテム本体の編集</option>
+          <option value="attach">アタッチメント・ツールの編集</option>
         </select>
-      </div>
+      </label>
 
-      <!-- モード1: アイテム編集 -->
+      <!-- アイテム編集フォーム -->
       <div id="mode-item-container">
-        <div class="form-group">
-          <label>カテゴリ</label>
+        <label>カテゴリ
           <select id="edit-category-select">
-            <option value="weapon">武器クラフト</option>
-            <option value="crime">手芸クラフト</option>
+            <option value="weapon">武器・作成物</option>
+            <option value="crime">強盗・犯罪</option>
           </select>
-        </div>
+        </label>
 
-        <div class="form-group">
-          <label>編集するアイテム</label>
+        <label style="margin-top: 8px; display: block;">対象アイテム
           <select id="edit-item-select"></select>
-        </div>
+        </label>
 
-        <div id="item-form-area" class="edit-section">
-          <div class="form-group">
-            <label>アイテム名</label>
-            <input type="text" id="edit-item-name" placeholder="例: APピストル">
-          </div>
+        <label style="margin-top: 8px; display: block;">アイテム名
+          <input type="text" id="edit-item-name">
+        </label>
 
-          <div class="form-group">
-            <label>本体の労働力 (pt)</label>
-            <input type="number" id="edit-item-labor" value="10" min="0">
-          </div>
+        <label style="margin-top: 8px; display: block;">必要労働力 (pt)
+          <input type="number" id="edit-item-labor" min="0">
+        </label>
 
-          <label>本体の必要素材:</label>
+        <div style="margin-top: 8px;">
+          <label>必要素材</label>
           <div id="item-mats-container"></div>
-          <button class="btn btn-gray" id="add-item-mat-btn" style="font-size: 11px; padding: 2px 6px; margin: 4px 0 12px 0;">＋ 素材枠追加</button>
+          <button id="add-item-mat-btn" class="btn" style="padding: 2px 8px; font-size: 12px; margin-top: 4px;">＋ 素材を追加</button>
+        </div>
 
-          <label>付属させるアタッチメント/パーツ（選択式）:</label>
-          <div class="attach-select-list" id="attach-checkbox-list"></div>
+        <div style="margin-top: 8px;">
+          <label>関連付けアタッチメント</label>
+          <div id="attach-checkbox-list" class="checkbox-group"></div>
         </div>
       </div>
 
-      <!-- モード2: アタッチメント単体編集 -->
+      <!-- アタッチメント編集フォーム -->
       <div id="mode-attach-container" style="display: none;">
-        <div class="form-group">
-          <label>編集するアタッチメント/パーツ</label>
+        <label>対象アタッチメント
           <select id="edit-attach-select"></select>
-        </div>
+        </label>
 
-        <div id="attach-form-area" class="edit-section">
-          <div class="form-group">
-            <label>アタッチメント名</label>
-            <input type="text" id="edit-attach-name" placeholder="例: 大容量マガジン">
-          </div>
-          <div class="form-group">
-            <label>労働力 (pt)</label>
-            <input type="number" id="edit-attach-labor" value="5" min="0">
-          </div>
-          <label>必要素材:</label>
+        <label style="margin-top: 8px; display: block;">アタッチメント名
+          <input type="text" id="edit-attach-name">
+        </label>
+
+        <label style="margin-top: 8px; display: block;">必要労働力 (pt)
+          <input type="number" id="edit-attach-labor" min="0">
+        </label>
+
+        <div style="margin-top: 8px;">
+          <label>必要素材</label>
           <div id="attach-mats-container"></div>
-          <button class="btn btn-gray" id="add-attach-mat-btn" style="font-size: 11px; padding: 2px 6px; margin-top: 4px;">＋ 素材枠追加</button>
+          <button id="add-attach-mat-btn" class="btn" style="padding: 2px 8px; font-size: 12px; margin-top: 4px;">＋ 素材を追加</button>
         </div>
       </div>
 
-      <div class="modal-actions">
-        <button id="close-modal-btn" class="btn btn-gray">キャンセル</button>
-        <button id="save-modal-btn" class="btn btn-blue">保存して反映</button>
+      <div class="modal-footer">
+        <button id="close-modal-btn" class="btn btn-red">キャンセル</button>
+        <button id="save-modal-btn" class="btn btn-green">保存する</button>
       </div>
     </div>
   </div>
 
   <script>
-    // マスターデータ構造のアップデート（アタッチメント独立化）
+    // マスターデータ構造
     let recipeData = {
       attachments: {
         suppressor: { name: "🔹 サプレッサー", labor: 5, materials: { "高品質な鉄": 4 } },
@@ -374,9 +297,9 @@
     }
 
     class CraftCalculator {
-      constructor(type, categoryData, selectEl, partsEl, totalsEl) {
+      constructor(type, categoryKey, selectEl, partsEl, totalsEl) {
         this.type = type;
-        this.categoryData = categoryData;
+        this.categoryKey = categoryKey;
         this.selectEl = selectEl;
         this.partsEl = partsEl;
         this.totalsEl = totalsEl;
@@ -386,29 +309,39 @@
         this.render();
       }
 
-      updateSelectOptions() {
+      updateSelectOptions(keepValue = true) {
+        const currentVal = this.selectEl.value;
         this.selectEl.innerHTML = '';
-        for (const [key, item] of Object.entries(this.categoryData)) {
+        const categoryData = recipeData[this.categoryKey] || {};
+
+        for (const [key, item] of Object.entries(categoryData)) {
           const opt = document.createElement('option');
           opt.value = key;
           opt.textContent = item.name;
           this.selectEl.appendChild(opt);
         }
+
+        if (keepValue && categoryData[currentVal]) {
+          this.selectEl.value = currentVal;
+        }
       }
 
       render() {
         const itemKey = this.selectEl.value;
-        const item = this.categoryData[itemKey];
+        const categoryData = recipeData[this.categoryKey] || {};
+        const item = categoryData[itemKey];
         this.partsEl.innerHTML = '';
 
-        if (!item) return;
+        if (!item) {
+          this.totalsEl.innerHTML = '';
+          return;
+        }
 
-        // 本体の表示（素材がある場合のみ）
-        if (Object.keys(item.materials).length > 0 || item.labor > 0) {
+        if (Object.keys(item.materials || {}).length > 0 || item.labor > 0) {
           const baseBox = document.createElement('div');
           baseBox.className = 'part-box';
           let matListHTML = `<ul class="mat-list"><li><span class="labor-tag">労働力</span>: ${item.labor} pt</li>`;
-          for (const [mat, qty] of Object.entries(item.materials)) {
+          for (const [mat, qty] of Object.entries(item.materials || {})) {
             matListHTML += `<li>${mat}: ${qty} 個</li>`;
           }
           matListHTML += '</ul>';
@@ -425,7 +358,6 @@
           this.partsEl.appendChild(baseBox);
         }
 
-        // 関連アタッチメントの表示
         (item.attachmentIds || []).forEach(attId => {
           const att = recipeData.attachments[attId];
           if (!att) return;
@@ -433,7 +365,7 @@
           const box = document.createElement('div');
           box.className = 'part-box';
           let matListHTML = `<ul class="mat-list"><li><span class="labor-tag">労働力</span>: ${att.labor} pt</li>`;
-          for (const [mat, qty] of Object.entries(att.materials)) {
+          for (const [mat, qty] of Object.entries(att.materials || {})) {
             matListHTML += `<li>${mat}: ${qty} 個</li>`;
           }
           matListHTML += '</ul>';
@@ -464,23 +396,25 @@
 
       calculate() {
         const itemKey = this.selectEl.value;
-        const item = this.categoryData[itemKey];
+        const categoryData = recipeData[this.categoryKey] || {};
+        const item = categoryData[itemKey];
         let totalLabor = 0;
         const totalMaterials = {};
 
-        if (!item) return;
+        if (!item) {
+          this.totalsEl.innerHTML = '';
+          return;
+        }
 
-        // 本体の計算
         const baseQtyInput = this.partsEl.querySelector('.base-qty-input');
         if (baseQtyInput) {
           const baseQty = Math.max(1, parseInt(baseQtyInput.value) || 1);
-          totalLabor += item.labor * baseQty;
-          for (const [mat, qty] of Object.entries(item.materials)) {
+          totalLabor += (item.labor || 0) * baseQty;
+          for (const [mat, qty] of Object.entries(item.materials || {})) {
             totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * baseQty;
           }
         }
 
-        // アタッチメントの計算
         (item.attachmentIds || []).forEach(attId => {
           const cb = this.partsEl.querySelector(`.att-checkbox[data-att-id="${attId}"]`);
           if (cb && cb.checked) {
@@ -488,9 +422,11 @@
             const attQty = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1) || 1);
             const att = recipeData.attachments[attId];
 
-            totalLabor += att.labor * attQty;
-            for (const [mat, qty] of Object.entries(att.materials)) {
-              totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * attQty;
+            if (att) {
+              totalLabor += (att.labor || 0) * attQty;
+              for (const [mat, qty] of Object.entries(att.materials || {})) {
+                totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * attQty;
+              }
             }
           }
         });
@@ -502,10 +438,9 @@
       }
     }
 
-    const weaponCalc = new CraftCalculator('weapon', recipeData.weapon, document.getElementById('weapon-select'), document.getElementById('weapon-parts'), document.getElementById('weapon-totals'));
-    const crimeCalc = new CraftCalculator('crime', recipeData.crime, document.getElementById('crime-select'), document.getElementById('crime-parts'), document.getElementById('crime-totals'));
+    const weaponCalc = new CraftCalculator('weapon', 'weapon', document.getElementById('weapon-select'), document.getElementById('weapon-parts'), document.getElementById('weapon-totals'));
+    const crimeCalc = new CraftCalculator('crime', 'crime', document.getElementById('crime-select'), document.getElementById('crime-parts'), document.getElementById('crime-totals'));
 
-    // モーダル編集ロジック
     const modal = document.getElementById('edit-modal');
     const modeSelect = document.getElementById('edit-mode-select');
     const modeItemCont = document.getElementById('mode-item-container');
@@ -535,11 +470,10 @@
       }
     });
 
-    // --- アイテム編集フォーム制御 ---
     function updateItemSelectOptions() {
       editItemSelect.innerHTML = '<option value="__new__">【＋ 新規アイテムを追加】</option>';
       const cat = editCatSelect.value;
-      for (const [key, item] of Object.entries(recipeData[cat])) {
+      for (const [key, item] of Object.entries(recipeData[cat] || {})) {
         const opt = document.createElement('option');
         opt.value = key;
         opt.textContent = item.name;
@@ -555,20 +489,18 @@
       attachCheckboxList.innerHTML = '';
 
       let item = { name: '', labor: 0, materials: {}, attachmentIds: [] };
-      if (key !== '__new__' && recipeData[cat][key]) {
+      if (key !== '__new__' && recipeData[cat] && recipeData[cat][key]) {
         item = recipeData[cat][key];
       }
 
-      editItemName.value = item.name;
-      editItemLabor.value = item.labor;
+      editItemName.value = item.name || '';
+      editItemLabor.value = item.labor || 0;
 
-      // 素材描画
-      for (const [mat, qty] of Object.entries(item.materials)) {
+      for (const [mat, qty] of Object.entries(item.materials || {})) {
         addMatRow(itemMatsContainer, mat, qty);
       }
 
-      // アタッチメント選択チェックボックス群描画
-      for (const [attId, att] of Object.entries(recipeData.attachments)) {
+      for (const [attId, att] of Object.entries(recipeData.attachments || {})) {
         const isChecked = (item.attachmentIds || []).includes(attId) ? 'checked' : '';
         const label = document.createElement('label');
         label.className = 'checkbox-label';
@@ -578,10 +510,9 @@
       }
     }
 
-    // --- アタッチメント編集フォーム制御 ---
     function updateAttachSelectOptions() {
       editAttachSelect.innerHTML = '<option value="__new__">【＋ 新規アタッチメントを追加】</option>';
-      for (const [key, att] of Object.entries(recipeData.attachments)) {
+      for (const [key, att] of Object.entries(recipeData.attachments || {})) {
         const opt = document.createElement('option');
         opt.value = key;
         opt.textContent = att.name;
@@ -595,14 +526,14 @@
       attachMatsContainer.innerHTML = '';
 
       let att = { name: '', labor: 0, materials: {} };
-      if (key !== '__new__' && recipeData.attachments[key]) {
+      if (key !== '__new__' && recipeData.attachments && recipeData.attachments[key]) {
         att = recipeData.attachments[key];
       }
 
-      editAttachName.value = att.name;
-      editAttachLabor.value = att.labor;
+      editAttachName.value = att.name || '';
+      editAttachLabor.value = att.labor || 0;
 
-      for (const [mat, qty] of Object.entries(att.materials)) {
+      for (const [mat, qty] of Object.entries(att.materials || {})) {
         addMatRow(attachMatsContainer, mat, qty);
       }
     }
@@ -627,13 +558,15 @@
     editAttachSelect.addEventListener('change', renderAttachForm);
 
     document.getElementById('edit-recipe-btn').addEventListener('click', () => {
+      modeSelect.value = 'item';
+      modeItemCont.style.display = 'block';
+      modeAttachCont.style.display = 'none';
       updateItemSelectOptions();
       modal.classList.add('active');
     });
 
     document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.remove('active'));
 
-    // 保存ボタン処理
     document.getElementById('save-modal-btn').addEventListener('click', () => {
       if (modeSelect.value === 'item') {
         const cat = editCatSelect.value;
@@ -655,6 +588,7 @@
           attachmentIds.push(cb.value);
         });
 
+        if (!recipeData[cat]) recipeData[cat] = {};
         recipeData[cat][key] = {
           name: name,
           labor: parseInt(editItemLabor.value) || 0,
@@ -662,7 +596,7 @@
           attachmentIds: attachmentIds
         };
 
-      } else { // アタッチメント保存
+      } else {
         let key = editAttachSelect.value;
         const name = editAttachName.value.trim();
         if (!name) return alert('アタッチメント名を入力してください。');
@@ -676,6 +610,7 @@
           if (mName && mQty > 0) materials[mName] = mQty;
         });
 
+        if (!recipeData.attachments) recipeData.attachments = {};
         recipeData.attachments[key] = {
           name: name,
           labor: parseInt(editAttachLabor.value) || 0,
@@ -684,15 +619,16 @@
       }
 
       localStorage.setItem('craft_recipes_data_v2', JSON.stringify(recipeData));
-      weaponCalc.updateSelectOptions();
-      crimeCalc.updateSelectOptions();
+
+      weaponCalc.updateSelectOptions(true);
+      crimeCalc.updateSelectOptions(true);
       weaponCalc.render();
       crimeCalc.render();
+
       modal.classList.remove('active');
       alert('保存が完了しました！');
     });
 
-    // データ入出力
     document.getElementById('export-btn').addEventListener('click', () => {
       const blob = new Blob([JSON.stringify(recipeData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -717,10 +653,8 @@
           if (imported.weapon && imported.crime && imported.attachments) {
             recipeData = imported;
             localStorage.setItem('craft_recipes_data_v2', JSON.stringify(recipeData));
-            weaponCalc.categoryData = recipeData.weapon;
-            crimeCalc.categoryData = recipeData.crime;
-            weaponCalc.updateSelectOptions();
-            crimeCalc.updateSelectOptions();
+            weaponCalc.updateSelectOptions(false);
+            crimeCalc.updateSelectOptions(false);
             weaponCalc.render();
             crimeCalc.render();
             alert('データの読み込みが完了しました！');
