@@ -52,6 +52,8 @@
     .btn-green:hover { background-color: #2f855a; }
     .btn-gray { background-color: #4a5568; }
     .btn-gray:hover { background-color: #374151; }
+    .btn-blue { background-color: #3182ce; }
+    .btn-blue:hover { background-color: #2b6cb0; }
 
     /* メインコンテンツ grid */
     .calculator-grid {
@@ -60,7 +62,6 @@
       gap: 20px;
     }
 
-    /* カードデザイン */
     .card {
       background-color: var(--card-bg);
       border-radius: 8px;
@@ -87,7 +88,7 @@
       margin-bottom: 6px;
     }
 
-    select, input[type="number"] {
+    select, input[type="number"], textarea {
       width: 100%;
       padding: 10px;
       border-radius: 6px;
@@ -112,6 +113,13 @@
       border-radius: 6px;
     }
 
+    .part-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
     .checkbox-label {
       display: flex;
       align-items: center;
@@ -121,6 +129,18 @@
       color: var(--accent-orange);
     }
     .checkbox-label input { width: auto; cursor: pointer; }
+
+    .qty-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+    .qty-input-wrapper input {
+      width: 60px;
+      padding: 4px 6px;
+      text-align: center;
+    }
 
     .mat-list {
       margin: 8px 0 0 0;
@@ -153,15 +173,45 @@
       padding-left: 20px;
       font-size: 14px;
     }
+
+    /* モーダル */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-overlay.active { display: flex; }
+
+    .modal-content {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      border: 1px solid var(--border-color);
+    }
+    .modal-content textarea {
+      height: 300px;
+      font-family: monospace;
+      white-space: pre;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
 
   <!-- ツールバーエリア -->
   <div class="toolbar">
-    <button class="btn btn-green">📝 レシピを編集・追加する</button>
-
-    <!-- JSON データ入出力機能 -->
+    <button id="edit-recipe-btn" class="btn btn-green">📝 レシピを編集・追加する</button>
     <button id="export-btn" class="btn btn-gray">💾 データを書き出す</button>
     <input type="file" id="import-file" accept=".json" style="display: none;" />
     <button id="import-btn" class="btn btn-gray">📂 データを読み込む</button>
@@ -183,7 +233,7 @@
       </div>
 
       <div class="form-group">
-        <label for="weapon-count">作成する個数</label>
+        <label for="weapon-count">作成するセット数</label>
         <input type="number" id="weapon-count" value="1" min="1" />
       </div>
 
@@ -221,22 +271,35 @@
 
   </div>
 
+  <!-- レシピ編集用モーダル -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-content">
+      <h2>📝 レシピデータの直接編集 (JSON)</h2>
+      <p style="font-size: 12px; color: #a0aec0;">レシピ構成や材料、デフォルト設定をJSONで編集できます。</p>
+      <textarea id="json-editor"></textarea>
+      <div class="modal-actions">
+        <button id="close-modal-btn" class="btn btn-gray">キャンセル</button>
+        <button id="save-modal-btn" class="btn btn-blue">保存して反映</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // レシピマスターデータ（労働力: labor を追加）
+    // 初期マスターデータ
     let recipeData = {
       weapon: {
         heavy_pistol: {
           name: "ヘビーピストル",
           parts: [
-            { id: "base", name: "🔹 本体", labor: 10, required: true, materials: { "高品質な鉄": 10, "スプリング": 3 } },
-            { id: "suppressor", name: "🔹 サプレッサー", labor: 5, required: false, defaultOn: true, materials: { "高品質な鉄": 4 } },
-            { id: "ammo_9mm", name: "🔹 9mm弾", labor: 2, required: false, defaultOn: true, materials: { "ガンパウダー": 2 } }
+            { id: "base", name: "🔹 本体", labor: 10, required: true, defaultQty: 1, materials: { "高品質な鉄": 10, "スプリング": 3 } },
+            { id: "suppressor", name: "🔹 サプレッサー", labor: 5, required: false, defaultOn: true, defaultQty: 1, materials: { "高品質な鉄": 4 } },
+            { id: "ammo_9mm", name: "🔹 9mm弾", labor: 2, required: false, defaultOn: true, defaultQty: 1, materials: { "ガンパウダー": 2 } }
           ]
         },
         armor: {
           name: "防弾チョッキ",
           parts: [
-            { id: "base", name: "🔹 本体", labor: 15, required: true, materials: { "プラスチック": 8, "布": 12 } }
+            { id: "base", name: "🔹 本体", labor: 15, required: true, defaultQty: 1, materials: { "プラスチック": 8, "布": 12 } }
           ]
         }
       },
@@ -244,14 +307,19 @@
         pacific: {
           name: "パシフィック銀行強盗",
           parts: [
-            { id: "hacking_pc", name: "🔹 ハッキングPC", labor: 20, required: false, defaultOn: true, materials: { "精密部品": 10, "電子部品": 15 } },
-            { id: "thermite", name: "🔹 サーマイト爆薬", labor: 10, required: false, defaultOn: true, materials: { "マグネシウム": 5 } }
+            { id: "hacking_pc", name: "🔹 ハッキングPC", labor: 20, required: false, defaultOn: true, defaultQty: 1, materials: { "精密部品": 10, "電子部品": 15 } },
+            { id: "thermite", name: "🔹 サーマイト爆薬", labor: 10, required: false, defaultOn: true, defaultQty: 1, materials: { "マグネシウム": 5 } }
           ]
         }
       }
     };
 
-    // UI描画 & 計算処理クラス
+    // ローカルストレージからの読み込み
+    const saved = localStorage.getItem('craft_recipes_data');
+    if (saved) {
+      try { recipeData = JSON.parse(saved); } catch(e) {}
+    }
+
     class CraftCalculator {
       constructor(type, categoryData, selectEl, countEl, partsEl, totalsEl) {
         this.type = type;
@@ -279,27 +347,46 @@
 
           let matListHTML = `<ul class="mat-list"><li><span class="labor-tag">労働力</span>: ${part.labor} pt</li>`;
           for (const [mat, qty] of Object.entries(part.materials)) {
-            matListHTML += `<li>${mat}: ${qty} 個 (1個あたり: ${qty})</li>`;
+            matListHTML += `<li>${mat}: ${qty} 個</li>`;
           }
           matListHTML += '</ul>';
 
+          const initQty = part.defaultQty || 1;
+
           if (part.required) {
-            box.innerHTML = `<strong>${part.name}</strong>${matListHTML}`;
+            box.innerHTML = `
+              <div class="part-header">
+                <strong>${part.name}</strong>
+                <div class="qty-input-wrapper">
+                  <span>数量:</span>
+                  <input type="number" class="part-qty-input" data-part-id="${part.id}" value="${initQty}" min="1">
+                </div>
+              </div>
+              ${matListHTML}
+            `;
           } else {
             const checked = part.defaultOn ? 'checked' : '';
             box.innerHTML = `
-              <label class="checkbox-label">
-                <input type="checkbox" class="part-checkbox" data-part-id="${part.id}" ${checked}>
-                ${part.name} を含める
-              </label>
+              <div class="part-header">
+                <label class="checkbox-label">
+                  <input type="checkbox" class="part-checkbox" data-part-id="${part.id}" ${checked}>
+                  ${part.name}
+                </label>
+                <div class="qty-input-wrapper">
+                  <span>数量:</span>
+                  <input type="number" class="part-qty-input" data-part-id="${part.id}" value="${initQty}" min="1">
+                </div>
+              </div>
               ${matListHTML}
             `;
           }
           this.partsEl.appendChild(box);
         });
 
-        this.partsEl.querySelectorAll('.part-checkbox').forEach(cb => {
-          cb.addEventListener('change', () => this.calculate());
+        // イベントバインド
+        this.partsEl.querySelectorAll('.part-checkbox, .part-qty-input').forEach(el => {
+          el.addEventListener('input', () => this.calculate());
+          el.addEventListener('change', () => this.calculate());
         });
 
         this.calculate();
@@ -318,19 +405,23 @@
         recipe.parts.forEach(part => {
           let isIncluded = part.required;
           if (!part.required) {
-            const cb = this.partsEl.querySelector(`[data-part-id="${part.id}"]`);
+            const cb = this.partsEl.querySelector(`.part-checkbox[data-part-id="${part.id}"]`);
             if (cb && cb.checked) isIncluded = true;
           }
 
           if (isIncluded) {
-            totalLabor += part.labor * count;
+            const qtyInput = this.partsEl.querySelector(`.part-qty-input[data-part-id="${part.id}"]`);
+            const partQty = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1) || 1);
+            const multiplier = count * partQty;
+
+            totalLabor += part.labor * multiplier;
             for (const [mat, qty] of Object.entries(part.materials)) {
-              totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * count;
+              totalMaterials[mat] = (totalMaterials[mat] || 0) + qty * multiplier;
             }
           }
         });
 
-        // 合計描画
+        // 合計表示
         this.totalsEl.innerHTML = `<li><span class="labor-tag">労働力</span>: <strong>${totalLabor} pt</strong></li>`;
         for (const [mat, qty] of Object.entries(totalMaterials)) {
           this.totalsEl.innerHTML += `<li>${mat}: <strong>${qty} 個</strong></li>`;
@@ -338,22 +429,55 @@
       }
     }
 
-    // インスタンス化
-    const weaponCalc = new CraftCalculator('weapon', recipeData.weapon, 
+    // インスタンス作成
+    let weaponCalc = new CraftCalculator('weapon', recipeData.weapon, 
       document.getElementById('weapon-select'), 
       document.getElementById('weapon-count'), 
       document.getElementById('weapon-parts'), 
       document.getElementById('weapon-totals')
     );
 
-    const crimeCalc = new CraftCalculator('crime', recipeData.crime, 
+    let crimeCalc = new CraftCalculator('crime', recipeData.crime, 
       document.getElementById('crime-select'), 
       document.getElementById('crime-count'), 
       document.getElementById('crime-parts'), 
       document.getElementById('crime-totals')
     );
 
-    // --- JSON書き出し & 読み込み機能 ---
+    // --- レシピ編集モーダル制御 ---
+    const modal = document.getElementById('edit-modal');
+    const jsonEditor = document.getElementById('json-editor');
+
+    document.getElementById('edit-recipe-btn').addEventListener('click', () => {
+      jsonEditor.value = JSON.stringify(recipeData, null, 2);
+      modal.classList.add('active');
+    });
+
+    document.getElementById('close-modal-btn').addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
+
+    document.getElementById('save-modal-btn').addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(jsonEditor.value);
+        if (parsed.weapon && parsed.crime) {
+          recipeData = parsed;
+          localStorage.setItem('craft_recipes_data', JSON.stringify(recipeData));
+          weaponCalc.categoryData = recipeData.weapon;
+          crimeCalc.categoryData = recipeData.crime;
+          weaponCalc.render();
+          crimeCalc.render();
+          modal.classList.remove('active');
+          alert('レシピを更新しました！');
+        } else {
+          alert('データ形式が正しくありません (weapon と crime のキーが必要です)。');
+        }
+      } catch (err) {
+        alert('JSONの構文にエラーがあります。');
+      }
+    });
+
+    // --- JSON書き出し & 読み込み ---
     document.getElementById('export-btn').addEventListener('click', () => {
       const dataStr = JSON.stringify(recipeData, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
@@ -378,6 +502,7 @@
           const imported = JSON.parse(event.target.result);
           if (imported.weapon && imported.crime) {
             recipeData = imported;
+            localStorage.setItem('craft_recipes_data', JSON.stringify(recipeData));
             weaponCalc.categoryData = recipeData.weapon;
             crimeCalc.categoryData = recipeData.crime;
             weaponCalc.render();
