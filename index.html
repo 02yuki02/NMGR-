@@ -14,6 +14,7 @@
       --text-dim: #94a3b8;
       --border: #334155;
       --red: #ef4444;
+      --red-hover: #dc2626;
       --green: #10b981;
     }
 
@@ -86,6 +87,7 @@
     }
     .btn:hover { background: var(--accent-hover); }
     .btn-red { background: var(--red); }
+    .btn-red:hover { background: var(--red-hover); }
     .btn-green { background: var(--green); }
 
     .part-box {
@@ -131,7 +133,7 @@
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
-      width: 90%; max-width: 500px;
+      width: 90%; max-width: 520px;
       max-height: 85vh;
       overflow-y: auto;
       padding: 20px;
@@ -139,10 +141,39 @@
       flex-direction: column;
       gap: 12px;
     }
-    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    .modal-footer-right { display: flex; gap: 8px; }
 
     .mat-input-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
-    .checkbox-group { display: flex; flex-direction: column; gap: 4px; max-height: 100px; overflow-y: auto; background: #0f172a; padding: 6px; border-radius: 4px; }
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      background: #0f172a;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .att-cat-group {
+      margin-bottom: 6px;
+    }
+    .att-cat-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+      margin-bottom: 4px;
+    }
     .checkbox-label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
     .labor-tag { color: #f59e0b; font-weight: bold; }
   </style>
@@ -225,18 +256,26 @@
         </div>
 
         <div style="margin-top: 8px;">
-          <label>関連付けアタッチメント</label>
+          <label>関連付けアタッチメント・道具</label>
           <div id="attach-checkbox-list" class="checkbox-group"></div>
         </div>
       </div>
 
       <!-- アタッチメント編集フォーム -->
       <div id="mode-attach-container" style="display: none;">
-        <label>対象アタッチメント
+        <label>対象アタッチメント・道具
           <select id="edit-attach-select"></select>
         </label>
 
-        <label style="margin-top: 8px; display: block;">アタッチメント名
+        <label style="margin-top: 8px; display: block;">分類カテゴリ
+          <select id="edit-attach-category">
+            <option value="weapon_att">武器アタッチメント</option>
+            <option value="crime_tool">犯罪ツール・道具</option>
+            <option value="other">その他</option>
+          </select>
+        </label>
+
+        <label style="margin-top: 8px; display: block;">名前
           <input type="text" id="edit-attach-name">
         </label>
 
@@ -252,20 +291,23 @@
       </div>
 
       <div class="modal-footer">
-        <button id="close-modal-btn" class="btn btn-red">キャンセル</button>
-        <button id="save-modal-btn" class="btn btn-green">保存する</button>
+        <button id="delete-modal-btn" class="btn btn-red" style="display: none;">🗑 削除する</button>
+        <div class="modal-footer-right">
+          <button id="close-modal-btn" class="btn" style="background: var(--border);">キャンセル</button>
+          <button id="save-modal-btn" class="btn btn-green">保存する</button>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // マスターデータ構造
+    // 初期マスターデータ構造
     let recipeData = {
       attachments: {
-        suppressor: { name: "🔹 サプレッサー", labor: 5, materials: { "高品質な鉄": 4 } },
-        ammo_9mm: { name: "🔹 9mm弾", labor: 2, materials: { "ガンパウダー": 2 } },
-        hacking_pc: { name: "🔹 ハッキングPC", labor: 20, materials: { "精密部品": 10, "電子部品": 15 } },
-        thermite: { name: "🔹 サーマイト爆薬", labor: 10, materials: { "マグネシウム": 5 } }
+        suppressor: { name: "🔹 サプレッサー", category: "weapon_att", labor: 5, materials: { "高品質な鉄": 4 } },
+        ammo_9mm: { name: "🔹 9mm弾", category: "weapon_att", labor: 2, materials: { "ガンパウダー": 2 } },
+        hacking_pc: { name: "🔹 ハッキングPC", category: "crime_tool", labor: 20, materials: { "精密部品": 10, "電子部品": 15 } },
+        thermite: { name: "🔹 サーマイト爆薬", category: "crime_tool", labor: 10, materials: { "マグネシウム": 5 } }
       },
       weapon: {
         heavy_pistol: {
@@ -291,7 +333,13 @@
       }
     };
 
-    const saved = localStorage.getItem('craft_recipes_data_v2');
+    const categoryNames = {
+      weapon_att: "武器アタッチメント",
+      crime_tool: "犯罪ツール・道具",
+      other: "その他"
+    };
+
+    const saved = localStorage.getItem('craft_recipes_data_v3');
     if (saved) {
       try { recipeData = JSON.parse(saved); } catch(e) {}
     }
@@ -314,7 +362,12 @@
         this.selectEl.innerHTML = '';
         const categoryData = recipeData[this.categoryKey] || {};
 
-        for (const [key, item] of Object.entries(categoryData)) {
+        // 50音順・アルファベット順ソート
+        const sortedEntries = Object.entries(categoryData).sort((a, b) => 
+          a[1].name.localeCompare(b[1].name, 'ja')
+        );
+
+        for (const [key, item] of sortedEntries) {
           const opt = document.createElement('option');
           opt.value = key;
           opt.textContent = item.name;
@@ -445,6 +498,7 @@
     const modeSelect = document.getElementById('edit-mode-select');
     const modeItemCont = document.getElementById('mode-item-container');
     const modeAttachCont = document.getElementById('mode-attach-container');
+    const deleteBtn = document.getElementById('delete-modal-btn');
 
     const editCatSelect = document.getElementById('edit-category-select');
     const editItemSelect = document.getElementById('edit-item-select');
@@ -454,6 +508,7 @@
     const attachCheckboxList = document.getElementById('attach-checkbox-list');
 
     const editAttachSelect = document.getElementById('edit-attach-select');
+    const editAttachCategory = document.getElementById('edit-attach-category');
     const editAttachName = document.getElementById('edit-attach-name');
     const editAttachLabor = document.getElementById('edit-attach-labor');
     const attachMatsContainer = document.getElementById('attach-mats-container');
@@ -473,7 +528,11 @@
     function updateItemSelectOptions() {
       editItemSelect.innerHTML = '<option value="__new__">【＋ 新規アイテムを追加】</option>';
       const cat = editCatSelect.value;
-      for (const [key, item] of Object.entries(recipeData[cat] || {})) {
+      const sortedEntries = Object.entries(recipeData[cat] || {}).sort((a, b) => 
+        a[1].name.localeCompare(b[1].name, 'ja')
+      );
+
+      for (const [key, item] of sortedEntries) {
         const opt = document.createElement('option');
         opt.value = key;
         opt.textContent = item.name;
@@ -488,6 +547,12 @@
       itemMatsContainer.innerHTML = '';
       attachCheckboxList.innerHTML = '';
 
+      if (key === '__new__') {
+        deleteBtn.style.display = 'none';
+      } else {
+        deleteBtn.style.display = 'block';
+      }
+
       let item = { name: '', labor: 0, materials: {}, attachmentIds: [] };
       if (key !== '__new__' && recipeData[cat] && recipeData[cat][key]) {
         item = recipeData[cat][key];
@@ -500,19 +565,42 @@
         addMatRow(itemMatsContainer, mat, qty);
       }
 
+      // カテゴリごとにグループ化して描画
+      const grouped = {};
       for (const [attId, att] of Object.entries(recipeData.attachments || {})) {
-        const isChecked = (item.attachmentIds || []).includes(attId) ? 'checked' : '';
-        const label = document.createElement('label');
-        label.className = 'checkbox-label';
-        label.style.fontSize = '13px';
-        label.innerHTML = `<input type="checkbox" class="edit-item-att-cb" value="${attId}" ${isChecked}> ${att.name}`;
-        attachCheckboxList.appendChild(label);
+        const c = att.category || 'other';
+        if (!grouped[c]) grouped[c] = [];
+        grouped[c].push({ id: attId, ...att });
+      }
+
+      for (const [catKey, atts] of Object.entries(grouped)) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'att-cat-group';
+        groupDiv.innerHTML = `<div class="att-cat-title">${categoryNames[catKey] || catKey}</div>`;
+
+        // 50音順ソート
+        atts.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+        atts.forEach(att => {
+          const isChecked = (item.attachmentIds || []).includes(att.id) ? 'checked' : '';
+          const label = document.createElement('label');
+          label.className = 'checkbox-label';
+          label.style.fontSize = '13px';
+          label.innerHTML = `<input type="checkbox" class="edit-item-att-cb" value="${att.id}" ${isChecked}> ${att.name}`;
+          groupDiv.appendChild(label);
+        });
+
+        attachCheckboxList.appendChild(groupDiv);
       }
     }
 
     function updateAttachSelectOptions() {
-      editAttachSelect.innerHTML = '<option value="__new__">【＋ 新規アタッチメントを追加】</option>';
-      for (const [key, att] of Object.entries(recipeData.attachments || {})) {
+      editAttachSelect.innerHTML = '<option value="__new__">【＋ 新規アタッチメント・道具を追加】</option>';
+      const sortedEntries = Object.entries(recipeData.attachments || {}).sort((a, b) => 
+        a[1].name.localeCompare(b[1].name, 'ja')
+      );
+
+      for (const [key, att] of sortedEntries) {
         const opt = document.createElement('option');
         opt.value = key;
         opt.textContent = att.name;
@@ -525,12 +613,19 @@
       const key = editAttachSelect.value;
       attachMatsContainer.innerHTML = '';
 
-      let att = { name: '', labor: 0, materials: {} };
+      if (key === '__new__') {
+        deleteBtn.style.display = 'none';
+      } else {
+        deleteBtn.style.display = 'block';
+      }
+
+      let att = { name: '', category: 'weapon_att', labor: 0, materials: {} };
       if (key !== '__new__' && recipeData.attachments && recipeData.attachments[key]) {
         att = recipeData.attachments[key];
       }
 
       editAttachName.value = att.name || '';
+      editAttachCategory.value = att.category || 'weapon_att';
       editAttachLabor.value = att.labor || 0;
 
       for (const [mat, qty] of Object.entries(att.materials || {})) {
@@ -567,6 +662,39 @@
 
     document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.remove('active'));
 
+    // 削除機能
+    deleteBtn.addEventListener('click', () => {
+      if (modeSelect.value === 'item') {
+        const cat = editCatSelect.value;
+        const key = editItemSelect.value;
+        if (key !== '__new__' && confirm('このアイテムを削除してもよろしいですか？')) {
+          delete recipeData[cat][key];
+          saveAndRefresh();
+          updateItemSelectOptions();
+          alert('削除しました。');
+        }
+      } else {
+        const key = editAttachSelect.value;
+        if (key !== '__new__' && confirm('このアタッチメント・道具を削除してもよろしいですか？\n※関連付けからも解除されます。')) {
+          delete recipeData.attachments[key];
+
+          // 他アイテムの関連付けからも削除
+          ['weapon', 'crime'].forEach(c => {
+            Object.values(recipeData[c] || {}).forEach(item => {
+              if (item.attachmentIds) {
+                item.attachmentIds = item.attachmentIds.filter(id => id !== key);
+              }
+            });
+          });
+
+          saveAndRefresh();
+          updateAttachSelectOptions();
+          alert('削除しました。');
+        }
+      }
+    });
+
+    // 保存機能
     document.getElementById('save-modal-btn').addEventListener('click', () => {
       if (modeSelect.value === 'item') {
         const cat = editCatSelect.value;
@@ -599,7 +727,7 @@
       } else {
         let key = editAttachSelect.value;
         const name = editAttachName.value.trim();
-        if (!name) return alert('アタッチメント名を入力してください。');
+        if (!name) return alert('名前を入力してください。');
 
         if (key === '__new__') key = `att_${Date.now()}`;
 
@@ -613,21 +741,24 @@
         if (!recipeData.attachments) recipeData.attachments = {};
         recipeData.attachments[key] = {
           name: name,
+          category: editAttachCategory.value,
           labor: parseInt(editAttachLabor.value) || 0,
           materials: materials
         };
       }
 
-      localStorage.setItem('craft_recipes_data_v2', JSON.stringify(recipeData));
+      saveAndRefresh();
+      modal.classList.remove('active');
+      alert('保存が完了しました！');
+    });
 
+    function saveAndRefresh() {
+      localStorage.setItem('craft_recipes_data_v3', JSON.stringify(recipeData));
       weaponCalc.updateSelectOptions(true);
       crimeCalc.updateSelectOptions(true);
       weaponCalc.render();
       crimeCalc.render();
-
-      modal.classList.remove('active');
-      alert('保存が完了しました！');
-    });
+    }
 
     document.getElementById('export-btn').addEventListener('click', () => {
       const blob = new Blob([JSON.stringify(recipeData, null, 2)], { type: 'application/json' });
@@ -652,11 +783,7 @@
           const imported = JSON.parse(event.target.result);
           if (imported.weapon && imported.crime && imported.attachments) {
             recipeData = imported;
-            localStorage.setItem('craft_recipes_data_v2', JSON.stringify(recipeData));
-            weaponCalc.updateSelectOptions(false);
-            crimeCalc.updateSelectOptions(false);
-            weaponCalc.render();
-            crimeCalc.render();
+            saveAndRefresh();
             alert('データの読み込みが完了しました！');
           } else { alert('形式が正しくありません。'); }
         } catch (err) { alert('読み込みに失敗しました。'); }
